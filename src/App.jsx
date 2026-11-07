@@ -1,11 +1,23 @@
-import MapGrid from "./pages/MapGrid";
+import { useState } from "react";
+import HomePage from "./pages/HomePage";
+import JoinRoomPage from "./pages/JoinRoomPage";
+import CreateRoomPage from "./pages/CreateRoomPage";
 
-function App() {
+export default function App() {
+  const [page, setPage] = useState("home");
+
+  if (page === "join") {
+    return <JoinRoomPage onBack={() => setPage("home")} />;
+  }
+
+  if (page === "create") {
+    return <CreateRoomPage onBack={() => setPage("home")} />;
+  }
+
   return (
-    <div>
-      <MapGrid />
-    </div>
+    <HomePage
+      onJoin={() => setPage("join")}
+      onCreate={() => setPage("create")}
+    />
   );
 }
-
-export default App;

@@ -1,0 +1,72 @@
+.home-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 400px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 64px 28px 40px;
+  background: #fcf9f2;
+  color: #503719;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.home-title {
+  margin: 0;
+  font-size: 44px;
+  font-weight: 800;
+}
+
+.home-illustration {
+  height: 250px;
+  margin-top: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 140px;
+}
+
+.home-description {
+  margin: 20px 0 0;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.home-actions {
+  width: 100%;
+  margin-top: auto;
+  padding-top: 56px;
+}
+
+.home-start {
+  width: 100%;
+  min-height: 52px;
+  border: 2px solid #94764f;
+  border-radius: 28px;
+  background: #ffedb5;
+  color: inherit;
+  font: inherit;
+  font-size: 18px;
+}
+
+.home-start:disabled {
+  cursor: not-allowed;
+}
+
+.home-join {
+  margin: 24px 0 0;
+  font-size: 14px;
+}
+
+.home-join button {
+  margin-left: 8px;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
