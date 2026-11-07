@@ -9,8 +9,7 @@ const COLORS = [
   { name: "회색", value: "#8d8580" },
 ];
 
-export default function JoinRoomPage({ onBack }) {
-  const [name, setName] = useState("");
+export default function JoinRoomPage({ onBack, onPreview }) {  const [name, setName] = useState("");
   const [color, setColor] = useState(COLORS[0].value);
   const [deviceCode, setDeviceCode] = useState("");
   const [roomCode, setRoomCode] = useState("");
@@ -34,8 +33,11 @@ export default function JoinRoomPage({ onBack }) {
       return;
     }
 
-    setMessage("입력 확인 완료! 실제 방 입장은 서버 연결 후 가능해요.");
-  }
+    onPreview({
+      ...form,
+      roomName: "참여할 방",
+      capacity: null,
+    });  }
 
   return (
     <main className="join-page">

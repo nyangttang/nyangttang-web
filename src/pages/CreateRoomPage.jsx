@@ -9,8 +9,7 @@ const COLORS = [
   { name: "회색", value: "#8d8580" },
 ];
 
-export default function CreateRoomPage({ onBack }) {
-  const [step, setStep] = useState(1);
+export default function CreateRoomPage({ onBack, onPreview }) {  const [step, setStep] = useState(1);
   const [roomName, setRoomName] = useState("");
   const [capacity, setCapacity] = useState("");
   const [catName, setCatName] = useState("");
@@ -221,9 +220,19 @@ export default function CreateRoomPage({ onBack }) {
           <button
             className="create-primary"
             type="button"
-            onClick={onBack}
+            onClick={() =>
+              onPreview({
+                roomName: roomName.trim(),
+                capacity: Number(capacity),
+                name: catName.trim(),
+                color,
+                deviceCode: deviceCode.trim(),
+                goalMinutes: Number(goalMinutes),
+                roomCode: "",
+              })
+            }
           >
-            메인으로
+            방 화면 미리보기
           </button>
         </div>
       )}
