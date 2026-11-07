@@ -1,0 +1,180 @@
+.create-page {
+  width: 100%;
+  max-width: 400px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 20px 28px 36px;
+  background: #fcf9f2;
+  color: #503719;
+}
+
+.create-back {
+  padding: 8px 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.create-steps {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 20px;
+  color: #ef9aa5;
+}
+
+.create-steps span {
+  opacity: 0.4;
+}
+
+.create-steps .is-active {
+  opacity: 1;
+}
+
+.create-illustration {
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 72px;
+}
+
+.create-title {
+  margin: 4px 0 28px;
+  text-align: center;
+  font-size: 28px;
+}
+
+.create-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid #a17e50;
+  border-radius: 24px;
+}
+
+.create-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.create-field input,
+.create-field select {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid #a17e50;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+}
+
+.create-field input:disabled {
+  background: #f1ebe1;
+  color: #7b6c58;
+  opacity: 1;
+}
+
+.create-field input:focus-visible,
+.create-field select:focus-visible {
+  outline: 2px solid #94764f;
+  outline-offset: 3px;
+}
+
+.create-colors {
+  min-width: 0;
+  margin: -8px 0 0;
+  padding: 0;
+  border: none;
+}
+
+.create-colors legend,
+.create-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.create-color-options {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.create-color-option {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.create-color-option input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+}
+
+.create-color-swatch {
+  width: 26px;
+  height: 26px;
+  border: 1px solid #aaa09a;
+  border-radius: 50%;
+}
+
+.create-color-option input:checked + .create-color-swatch {
+  outline: 2px solid #503719;
+  outline-offset: 3px;
+}
+
+.create-color-option input:focus-visible + .create-color-swatch {
+  outline: 3px dashed #503719;
+  outline-offset: 3px;
+}
+
+.create-message {
+  margin: 16px 0;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.create-primary {
+  display: block;
+  width: 84%;
+  min-height: 52px;
+  margin: 24px auto 0;
+  border: 2px solid #94764f;
+  border-radius: 28px;
+  background: #ffedb5;
+  color: inherit;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.create-complete {
+  padding-top: 64px;
+}
+
+.create-complete .create-title {
+  margin-bottom: 16px;
+  font-size: 25px;
+}
+
+.create-summary {
+  margin-bottom: 28px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.create-complete .create-primary {
+  margin-top: 56px;
+}
