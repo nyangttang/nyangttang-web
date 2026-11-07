@@ -2,6 +2,7 @@ import { useState } from "react";
 import HomePage from "./pages/HomePage";
 import JoinRoomPage from "./pages/JoinRoomPage";
 import CreateRoomPage from "./pages/CreateRoomPage";
+import MapGrid from "./pages/MapGrid";
 
 export default function App() {
   const [page, setPage] = useState("home");
@@ -12,6 +13,10 @@ export default function App() {
 
   if (page === "create") {
     return <CreateRoomPage onBack={() => setPage("home")} />;
+  }
+
+  if (window.location.pathname === "/map") {
+    return <MapGrid />;
   }
 
   return (
