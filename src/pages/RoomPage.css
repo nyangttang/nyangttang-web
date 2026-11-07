@@ -1,0 +1,314 @@
+.room-page {
+  --room-background: #fcf9f2;
+  --room-brown: #503719;
+  --room-muted: #9c9085;
+  --room-green: #e3ebce;
+
+  width: 100%;
+  max-width: 480px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--room-background);
+  color: var(--room-brown);
+  overflow-wrap: anywhere;
+}
+
+.room-page button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.room-page button:focus-visible {
+  outline: 3px solid #7a8a55;
+  outline-offset: 4px;
+}
+
+.room-page button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.room-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 0;
+  font-size: 12px;
+  color: var(--room-muted);
+}
+
+.room-topbar button {
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+  color: var(--room-brown);
+}
+
+.room-content {
+  flex: 1;
+  padding: 24px 20px 48px;
+}
+
+.room-heading {
+  margin-bottom: 20px;
+}
+
+.room-heading h1 {
+  margin: 0 0 8px;
+  font-size: 25px;
+  line-height: 1.3;
+}
+
+.room-heading p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.room-my-cat,
+.room-friend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 22px;
+  background: #fff;
+}
+
+.room-my-cat {
+  margin-bottom: 20px;
+}
+
+.room-avatar {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e7dfd3;
+  border-radius: 50%;
+  font-size: 34px;
+}
+
+.room-my-cat-info,
+.room-friend-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.room-my-cat-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.room-my-cat-title span {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.room-goal-track {
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 10px;
+  background: #ffddb0;
+}
+
+.room-my-cat-info p,
+.room-friend-info p {
+  margin: 6px 0 0;
+  color: var(--room-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.room-map-frame {
+  overflow-x: auto;
+  border: 1px solid #a17e50;
+  border-radius: 16px;
+  background: #fff;
+}
+
+/* 지도 자체의 셀 크기와 이동 로직은 그대로 유지해요. */
+.room-map-frame .map-container {
+  width: max-content;
+  min-width: 100%;
+  min-height: auto;
+}
+
+.room-help {
+  margin: 12px 0 0;
+  color: #897b6c;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.room-friend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.room-friend-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.room-status {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 20px;
+  background: #eee8dc;
+  color: #7c6a50;
+  font-size: 10px;
+}
+
+.room-invite {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 16px 20px;
+  border-radius: 20px;
+  background: #fff;
+}
+
+.room-invite > div {
+  min-width: 0;
+}
+
+.room-small-label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--room-muted);
+  font-size: 12px;
+}
+
+.room-invite strong {
+  font-size: 20px;
+  user-select: all;
+}
+
+.room-invite button {
+  flex-shrink: 0;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--room-brown);
+  color: #fff;
+  font-size: 12px;
+}
+
+.room-record-card,
+.room-device-card {
+  margin-top: 18px;
+  padding: 20px;
+  border-radius: 22px;
+  background: #fff;
+}
+
+.room-page .room-record-card h2,
+.room-page .room-device-card h2 {
+  margin: 0 0 16px;
+  color: var(--room-brown);
+  font-size: 18px;
+}
+
+.room-record-values {
+  margin: 20px 0 0;
+}
+
+.room-record-values > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1ece4;
+  font-size: 13px;
+}
+
+.room-record-values dt {
+  color: #897b6c;
+}
+
+.room-record-values dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 700;
+}
+
+.room-device-picture {
+  margin: 12px 0 24px;
+  text-align: center;
+  font-size: 80px;
+}
+
+.room-bottom-nav {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  flex-shrink: 0;
+  padding: 20px 12px calc(16px + env(safe-area-inset-bottom));
+  background: var(--room-green);
+}
+
+/* 둥근 언덕 모양의 메뉴 배경 */
+.room-bottom-nav::before {
+  content: "";
+  position: absolute;
+  top: -23px;
+  left: 0;
+  right: 0;
+  height: 25px;
+  z-index: -1;
+  background:
+    radial-gradient(
+      ellipse 34px 23px at 50% 100%,
+      var(--room-green) 96%,
+      transparent 100%
+    )
+    0 0 / 68px 25px repeat-x;
+}
+
+.room-bottom-nav button {
+  min-height: 44px;
+  padding: 8px 4px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--room-brown);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.room-bottom-nav button[aria-current="page"] {
+  color: #557211;
+}
+
+@media (max-width: 360px) {
+  .room-content {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .room-my-cat {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .room-my-cat-info p {
+    font-size: 11px;
+  }
+}
