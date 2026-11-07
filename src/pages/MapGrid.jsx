@@ -21,24 +21,31 @@ export default function MapGrid() {
   useEffect(() => {
     async function loadData() {
       const data = await fetchMapData();
-      setCats(data.cats);
+      const initialCatsWithWait = data.cats.map((cat) => ({
+        ...cat,
+        waitCount: 0,
+      }));
+      setCats(initialCatsWithWait);
       setOwners(data.owners);
       if (data.users) {
-        setUsers(data.users); // 더미데이터에서 유저 정보 불러오기
+        setUsers(data.users);
       }
     }
     loadData();
   }, []);
 
-  // 고양이 움직이기
-  // 고양이 움직이기 (다른 유저의 모서리 본진은 절대 침입 불가)
+  // 고양이 움직이기 및 대기 판정 로직
   const stepCatWalk = (cat, currentOwners) => {
+    if (cat.waitCount && cat.waitCount > 0) {
+      return { nextPos: cat.pos, newWaitCount: cat.waitCount - 1 };
+    }
+
     const width = 10;
     const currPos = cat.pos;
     const r = Math.floor(currPos / width);
     const c = currPos % width;
 
-    // 4개의 모서리 본진 좌표 (0:김냥, 9:이냥, 90:박냥, 99:최냥)
+    // 4개의 모서리 본진 좌표
     const cornerPositions = [0, 9, 90, 99];
 
     const neighbors = [];
@@ -67,10 +74,10 @@ export default function MapGrid() {
         owner: currentOwners[r * width + (c + 1)],
       });
 
-    // 🚫 절대 침범 금지 필터: 모서리 칸인데, 주인이 '다른 유저'라면 이동 후보에서 아예 제외!
+    // 절대 침범 금지 : 모서리 칸인데, 주인이 '다른 유저'라면 이동 후보에서 제외
+    // 적어도 한칸은 줘야할 것 같아서 일단 막아둠
     const safeNeighbors = neighbors.filter((n) => {
       if (cornerPositions.includes(n.pos)) {
-        // 모서리 칸의 주인이 존재하고, 그 주인이 내가 아니라면 진입 불가
         if (n.owner && n.owner !== cat.id) {
           return false;
         }
@@ -78,37 +85,40 @@ export default function MapGrid() {
       return true;
     });
 
-    // 1순위: 안전한 이웃 중 아직 아무도 안 밟은 '빈 칸'
+    // 이동 가능한 후보 찾기 (빈 땅 우선, 없으면 남의 땅 포함 전체)
     let validMoves = safeNeighbors.filter((n) => !n.owner);
-
-    // 2순위: 빈 칸이 없다면, '내 땅이 아닌 일반 남의 땅' 침공 (모서리는 위에서 이미 차단됨)
     if (validMoves.length === 0) {
       validMoves = safeNeighbors.filter((n) => n.owner !== cat.id);
     }
-
-    // 3순위: 만약 갈 곳이 없다면 안전 이웃 중에서 선택
     if (validMoves.length === 0) {
       validMoves = safeNeighbors;
     }
 
-    if (validMoves.length === 0) return cat.pos;
+    if (validMoves.length === 0) return { nextPos: cat.pos, newWaitCount: 0 };
 
-    // 정렬 로직 (빈 칸은 부채꼴 확장, 남의 땅은 공격적 진격)
+    // 정렬 로직
     validMoves.sort((a, b) => {
       const isTargetOpponent = a.owner && a.owner !== cat.id;
 
       if (a.dist !== b.dist) {
         if (isTargetOpponent) {
-          return b.dist - a.dist; // 멀어지는 방향 (영토 침공)
+          return b.dist - a.dist;
         } else {
-          return a.dist - b.dist; // 가까워지는 방향 (부채꼴 확장)
+          return a.dist - b.dist;
         }
       }
-      return Math.random() - 0.5; // 동점 시 랜덤 처리
+      return Math.random() - 0.5;
     });
 
-    const nextStep = validMoves[0].pos;
-    return nextStep;
+    const targetMove = validMoves[0];
+    const nextPos = targetMove.pos;
+
+    // 이동하려는 곳이 '다른 사람의 땅'이면 시간 두배로 소모하기
+    const isSteppingOnOpponent =
+      targetMove.owner && targetMove.owner !== cat.id;
+    const newWaitCount = isSteppingOnOpponent ? 2 : 0; // 2틱 동안 멈춰 서서 대기
+
+    return { nextPos, newWaitCount };
   };
 
   // 내 모서리랑 거리 구하기
@@ -121,9 +131,6 @@ export default function MapGrid() {
   useEffect(() => {
     if (!isLiveRunning) return;
 
-    {
-      /* 시간 기준 여기서 설정하기 일단 테스트라서 2초로 해봣어요  */
-    }
     const intervalTime = 0.2 * 1000;
 
     const timer = setInterval(() => {
@@ -132,9 +139,24 @@ export default function MapGrid() {
 
         const newCats = prevCats.map((cat) => {
           if (cat.status === "studying") {
-            const nextPos = stepCatWalk(cat, updatedOwners);
-            updatedOwners[nextPos] = cat.id;
-            return { ...cat, pos: nextPos };
+            const { nextPos, newWaitCount } = stepCatWalk(cat, updatedOwners);
+            if (cat.pos === nextPos) {
+              // 제자리에 멈춰서 대기 카운트를 소모 중인 경우
+              return { ...cat, waitCount: newWaitCount };
+            } else {
+              // 실제로 칸을 이동했거나, 대기가 끝나고 땅을 점령하는 타이밍
+              const currentOwner = updatedOwners[nextPos];
+              // 빈 땅이거나 내 땅이거나, 혹은 남의 땅이지만 대기를 거쳐 진입한 경우 내 땅으로 변경
+              if (
+                !currentOwner ||
+                currentOwner === cat.id ||
+                cat.waitCount === 0
+              ) {
+                updatedOwners[nextPos] = cat.id;
+              }
+
+              return { ...cat, pos: nextPos, waitCount: newWaitCount };
+            }
           }
           return cat;
         });
@@ -163,7 +185,6 @@ export default function MapGrid() {
 
   const stats = calculateStats();
 
-  // 더미데이터 색상 기반으로 셀 색상 지정
   const getCellColor = (cellId) => {
     const owner = owners[cellId];
     if (owner && users[owner]) {
@@ -196,18 +217,21 @@ export default function MapGrid() {
                   className="cat-marker"
                   style={{ borderColor: currentCat.color }}
                 >
-                  {/*여기서고양이모양이랑 상태 바꿀 수 잇게 하기 */}
                   <span>{currentCat.status === "studying" ? "🐱" : "💤"}</span>
+                  {/* 대기 중일 때 표정을 다르게 하거나 표시를 남길 수도 있어요 */}
                   <span
                     className="cat-tag"
                     style={{ backgroundColor: currentCat.color }}
                   >
-                    {currentCat.name}
+                    {currentCat.name}{" "}
+                    {currentCat.waitCount > 0
+                      ? `(대기중 ${currentCat.waitCount})`
+                      : ""}
                   </span>
                 </div>
-              ) : (
-                <span className="cell-num">{cellId + 1}</span>
-              )}
+              ) : null}
+
+              {/* 그리드 번호 확인용 코드 <span className="cell-num">{cellId + 1}</span>*/}
             </div>
           );
         })}
