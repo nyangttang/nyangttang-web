@@ -38,7 +38,7 @@ export default function MapGrid() {
     const r = Math.floor(currPos / width);
     const c = currPos % width;
 
-    // 🛡️ 4개의 모서리 본진 좌표 (0:김냥, 9:이냥, 90:박냥, 99:최냥)
+    // 4개의 모서리 본진 좌표 (0:김냥, 9:이냥, 90:박냥, 99:최냥)
     const cornerPositions = [0, 9, 90, 99];
 
     const neighbors = [];
