@@ -4,8 +4,8 @@
 export const initialCats = [
   { id: "user1", name: "김냥", pos: 0, color: "#ff9f43", status: "studying" }, // 0번 위치 (좌상단)
   { id: "user2", name: "이냥", pos: 9, color: "#54a0ff", status: "studying" }, // 9번 위치 (우상단)
-  { id: "user3", name: "박냥", pos: 90, color: "#1dd1a1", status: "studying" }, // 90번 위치 (좌하단)
-  { id: "user4", name: "최냥", pos: 99, color: "#ee5253", status: "studying" }, // 99번 위치 (우하단)
+  { id: "user3", name: "박냥", pos: 90, color: "#1dd1a1", status: "away" }, // 90번 위치 (좌하단)
+  { id: "user4", name: "최냥", pos: 99, color: "#ee5253", status: "resting" }, // 99번 위치 (우하단)
 ];
 
 // 유저별 기본 정보 (이름, 색상, 시작 모서리 좌표 등)

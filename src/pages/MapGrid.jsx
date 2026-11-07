@@ -31,45 +31,83 @@ export default function MapGrid() {
   }, []);
 
   // 고양이 움직이기
+  // 고양이 움직이기 (다른 유저의 모서리 본진은 절대 침입 불가)
   const stepCatWalk = (cat, currentOwners) => {
     const width = 10;
     const currPos = cat.pos;
     const r = Math.floor(currPos / width);
     const c = currPos % width;
 
+    // 🛡️ 4개의 모서리 본진 좌표 (0:김냥, 9:이냥, 90:박냥, 99:최냥)
+    const cornerPositions = [0, 9, 90, 99];
+
     const neighbors = [];
     if (r > 0)
       neighbors.push({
         pos: (r - 1) * width + c,
         dist: getDist(r - 1, c, cat.id),
+        owner: currentOwners[(r - 1) * width + c],
       });
     if (r < 9)
       neighbors.push({
         pos: (r + 1) * width + c,
         dist: getDist(r + 1, c, cat.id),
+        owner: currentOwners[(r + 1) * width + c],
       });
     if (c > 0)
       neighbors.push({
         pos: r * width + (c - 1),
         dist: getDist(r, c - 1, cat.id),
+        owner: currentOwners[r * width + (c - 1)],
       });
     if (c < 9)
       neighbors.push({
         pos: r * width + (c + 1),
         dist: getDist(r, c + 1, cat.id),
+        owner: currentOwners[r * width + (c + 1)],
       });
 
-    let validMoves = neighbors.filter((n) => !currentOwners[n.pos]);
+    // 🚫 절대 침범 금지 필터: 모서리 칸인데, 주인이 '다른 유저'라면 이동 후보에서 아예 제외!
+    const safeNeighbors = neighbors.filter((n) => {
+      if (cornerPositions.includes(n.pos)) {
+        // 모서리 칸의 주인이 존재하고, 그 주인이 내가 아니라면 진입 불가
+        if (n.owner && n.owner !== cat.id) {
+          return false;
+        }
+      }
+      return true;
+    });
 
+    // 1순위: 안전한 이웃 중 아직 아무도 안 밟은 '빈 칸'
+    let validMoves = safeNeighbors.filter((n) => !n.owner);
+
+    // 2순위: 빈 칸이 없다면, '내 땅이 아닌 일반 남의 땅' 침공 (모서리는 위에서 이미 차단됨)
     if (validMoves.length === 0) {
-      validMoves = neighbors;
+      validMoves = safeNeighbors.filter((n) => n.owner !== cat.id);
+    }
+
+    // 3순위: 만약 갈 곳이 없다면 안전 이웃 중에서 선택
+    if (validMoves.length === 0) {
+      validMoves = safeNeighbors;
     }
 
     if (validMoves.length === 0) return cat.pos;
 
-    validMoves.sort((a, b) => a.dist - b.dist);
-    const nextStep = validMoves[0].pos;
+    // 정렬 로직 (빈 칸은 부채꼴 확장, 남의 땅은 공격적 진격)
+    validMoves.sort((a, b) => {
+      const isTargetOpponent = a.owner && a.owner !== cat.id;
 
+      if (a.dist !== b.dist) {
+        if (isTargetOpponent) {
+          return b.dist - a.dist; // 멀어지는 방향 (영토 침공)
+        } else {
+          return a.dist - b.dist; // 가까워지는 방향 (부채꼴 확장)
+        }
+      }
+      return Math.random() - 0.5; // 동점 시 랜덤 처리
+    });
+
+    const nextStep = validMoves[0].pos;
     return nextStep;
   };
 
@@ -86,7 +124,7 @@ export default function MapGrid() {
     {
       /* 시간 기준 여기서 설정하기 일단 테스트라서 2초로 해봣어요  */
     }
-    const intervalTime = 2 * 1000;
+    const intervalTime = 0.2 * 1000;
 
     const timer = setInterval(() => {
       setCats((prevCats) => {
