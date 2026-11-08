@@ -186,92 +186,16 @@ export default function RoomPage({ room, onBack }) {
           </>
         )}
 
-        {/* 💡 산책 탭과 기록 탭에서만 공통으로 지도를 노출하되, 
-            산책 탭(`walk`)에서는 마커 보이기(true), 기록 탭(`records`)에서는 마커 숨기기(false)로 자동 제어 */}
+        {/* 💡 산책 탭과 기록 탭에서만 공통으로 지도를 노출 */}
         {(tab === "walk" || tab === "records") && (
           <section className="room-map-section" aria-label="지도 영역">
             <div>
-              <MapGrid showMarkers={tab === "walk"} />
+              {/* 🌟 아래와 같이 currentTab={tab} 을 전달해줍니다 */}
+              <MapGrid showMarkers={tab === "walk"} currentTab={tab} />
             </div>
-            {/* <p className="room-help">
-              {tab === "walk"
-                ? "예시 데이터로 움직이는 지도예요. 내 고양이·실제 기록과는 아직 연결되지 않았어요."
-                : "오늘 하루 동안 색칠된 땅의 기록이에요."}
-            </p> */}
           </section>
         )}
       </div>
-
-      {/* 3. 기록 탭 상단 영역 */}
-      {/* {tab === "records" && (
-        <>
-          <section className="room-record-card">
-            <h2>오늘의 산책 기록</h2>
-
-            <dl className="room-record-values">
-              <div>
-                <dt>공부 시간</dt>
-                <dd>—</dd>
-              </div>
-              <div>
-                <dt>목표 시간</dt>
-                <dd>{goalText}</dd>
-              </div>
-              <div>
-                <dt>내 땅</dt>
-                <dd>—%</dd>
-              </div>
-            </dl>
-
-            <p className="room-help">
-              저장 기록을 연결하면 오늘의 순위와 고양이별 공부 시간을 여기에
-              보여줄 거예요.
-            </p>
-          </section>
-        </>
-      )} */}
-
-      {tab === "records" && (
-        <>
-          <section className="ranking-card" aria-label="참여자 순위">
-            <div className="ranking-item">
-              <div className="rank-left">
-                <span className="rank-crown">👑</span>
-                <span className="rank-number gold">1</span>
-                <span className="rank-name blue">우나</span>
-              </div>
-              <span className="rank-time">2시간 40분 34%</span>
-            </div>
-
-            <div className="ranking-item">
-              <div className="rank-left">
-                <span className="rank-crown empty"></span>
-                <span className="rank-number">2</span>
-                <span className="rank-name">나우</span>
-              </div>
-              <span className="rank-time">1시간 20분 17%</span>
-            </div>
-
-            <div className="ranking-item">
-              <div className="rank-left">
-                <span className="rank-crown empty"></span>
-                <span className="rank-number">3</span>
-                <span className="rank-name">우우</span>
-              </div>
-              <span className="rank-time">1시간 15분 16%</span>
-            </div>
-
-            <div className="ranking-item">
-              <div className="rank-left">
-                <span className="rank-crown empty"></span>
-                <span className="rank-number">4</span>
-                <span className="rank-name orange">나나</span>
-              </div>
-              <span className="rank-time">51분 11%</span>
-            </div>
-          </section>
-        </>
-      )}
 
       <nav className="room-bottom-nav" aria-label="주 메뉴">
         {MENUS.map((menu) => (
