@@ -3,11 +3,11 @@ import "./JoinRoomPage.css";
 import joinCat from "../assets/join-cat.png";
 
 const COLORS = [
-  { name: "흰색", value: "#ffffff" },
-  { name: "연회색", value: "#dedbd8" },
-  { name: "크림색", value: "#ffe0ad" },
-  { name: "치즈색", value: "#d9b786" },
-  { name: "회색", value: "#8d8580" },
+  { name: "흰냥", value: "#ffffff" },
+  { name: "회색냥", value: "#dedbd8" },
+  { name: "치즈냥", value: "#ffe0ad" },
+  { name: "삼색냥", value: "#d9b786" },
+  { name: "검정냥", value: "#8d8580" },
 ];
 
 export default function JoinRoomPage({ onBack, onPreview }) {  const [name, setName] = useState("");

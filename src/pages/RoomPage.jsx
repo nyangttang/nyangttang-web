@@ -3,6 +3,20 @@ import MapGrid from "./MapGrid";
 import "./RoomPage.css";
 
 import grassNav from "../assets/grass-nav.png";
+import deviceCat from "../assets/device-cat.png";
+import blackCat from "../assets/black-cat.png";
+import cheeseCat from "../assets/cheese-cat.png";
+import grayCat from "../assets/gray-cat.png";
+import threeCat from "../assets/three-cat.png";
+import whiteCat from "../assets/white-cat.png";
+
+const CAT_IMAGES = {
+  "#ffffff": whiteCat,
+  "#dedbd8": grayCat,
+  "#ffe0ad": cheeseCat,
+  "#d9b786": threeCat,
+  "#8d8580": blackCat,
+};
 
 const MENUS = [
   { id: "walk", label: "산책" },
@@ -14,7 +28,8 @@ const MENUS = [
 export default function RoomPage({ room, onBack }) {
   const [tab, setTab] = useState("walk");
   const [copyMessage, setCopyMessage] = useState("");
-
+  const catImage = CAT_IMAGES[room.color] || whiteCat;
+  
   const today = new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
     month: "long",
@@ -47,7 +62,6 @@ export default function RoomPage({ room, onBack }) {
         <button type="button" onClick={onBack}>
           ← 처음으로
         </button>
-        <span>미리보기</span>
       </div>
 
       <div className="room-content">
@@ -59,12 +73,8 @@ export default function RoomPage({ room, onBack }) {
             </header>
 
             <section className="room-my-cat" aria-label="내 고양이">
-              <div
-                className="room-avatar"
-                style={{ backgroundColor: room.color }}
-                aria-hidden="true"
-              >
-                🐱
+              <div className="room-avatar">
+                <img src={catImage} alt="" />
               </div>
 
               <div className="room-my-cat-info">
@@ -90,12 +100,8 @@ export default function RoomPage({ room, onBack }) {
 
             <section className="room-friend-list" aria-label="참여자">
               <article className="room-friend">
-                <div
-                  className="room-avatar"
-                  style={{ backgroundColor: room.color }}
-                  aria-hidden="true"
-                >
-                  🐱
+                <div className="room-avatar">
+                  <img src={catImage} alt="" />
                 </div>
 
                 <div className="room-friend-info">
@@ -188,13 +194,13 @@ export default function RoomPage({ room, onBack }) {
         {tab === "device" && (
           <>
             <header className="room-heading">
-              <h1>내 식빵냥</h1>
-              <p>고양이와 함께 공부할 준비를 해요</p>
+              <h1>식빵냥</h1>
+              <p>내 식빵냥의 상태를 확인해요</p>
             </header>
 
             <section className="room-device-card">
-              <div className="room-device-picture" aria-hidden="true">
-                🐱
+              <div className="room-device-picture">
+                <img src={deviceCat} alt="" />
               </div>
 
               <h2>{room.name}의 식빵냥</h2>
