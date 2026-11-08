@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./JoinRoomPage.css";
+import joinCat from "../assets/join-cat.png";
 
 const COLORS = [
   { name: "흰색", value: "#ffffff" },
@@ -48,7 +49,7 @@ export default function JoinRoomPage({ onBack, onPreview }) {  const [name, setN
       <h1 className="join-title">입장하기</h1>
 
       <div className="join-illustration">
-        <span role="img" aria-label="고양이">🐱</span>
+        <img src={joinCat} alt="" />
       </div>
 
       <form className="join-form" onSubmit={handleSubmit}>

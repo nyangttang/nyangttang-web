@@ -20,12 +20,20 @@
 }
 
 .home-illustration {
+  width: 100%;
   height: 250px;
   margin-top: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 140px;
+}
+
+.home-illustration img {
+  display: block;
+  width: 100%;
+  max-width: 250px;
+  height: 280px;
+  object-fit: contain;
 }
 
 .home-description {

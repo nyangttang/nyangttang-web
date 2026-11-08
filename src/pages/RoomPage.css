@@ -261,28 +261,22 @@
   grid-template-columns: repeat(4, 1fr);
   flex-shrink: 0;
   padding: 20px 12px calc(16px + env(safe-area-inset-bottom));
-  background: var(--room-green);
+  background: transparent;
 }
 
-/* 둥근 언덕 모양의 메뉴 배경 */
-.room-bottom-nav::before {
-  content: "";
+.room-nav-grass {
   position: absolute;
-  top: -23px;
-  left: 0;
-  right: 0;
-  height: 25px;
-  z-index: -1;
-  background:
-    radial-gradient(
-      ellipse 34px 23px at 50% 100%,
-      var(--room-green) 96%,
-      transparent 100%
-    )
-    0 0 / 68px 25px repeat-x;
+  inset: -28px 0 0;
+  width: 100%;
+  height: calc(100% + 28px);
+  object-fit: fill;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .room-bottom-nav button {
+  position: relative;
+  z-index: 1;
   min-height: 44px;
   padding: 8px 4px;
   border: none;

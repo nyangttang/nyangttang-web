@@ -2,6 +2,8 @@ import { useState } from "react";
 import "./CreateRoomPage.css";
 import pawPink from "../assets/paw-pink.png";
 import pawBrown from "../assets/paw-brown.png";
+import createRoom1 from "../assets/create-room-1.png";
+import createRoom2 from "../assets/create-room-2.png";
 import createRoom3 from "../assets/create-room-3.png";
 
 const COLORS = [
@@ -79,7 +81,7 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
       {step === 1 && (
         <>
           <div className="create-illustration" aria-hidden="true">
-            📦🐱
+            <img src={createRoom1} alt="" />
           </div>
 
           <h1 className="create-title">새 방 만들기</h1>
@@ -123,7 +125,7 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
       {step === 2 && (
         <>
           <div className="create-illustration" aria-hidden="true">
-            🐱🍪
+            <img src={createRoom2} alt="" />
           </div>
 
           <h1 className="create-title">고양이 설정</h1>

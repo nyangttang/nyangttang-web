@@ -2,6 +2,8 @@ import { useState } from "react";
 import MapGrid from "./MapGrid";
 import "./RoomPage.css";
 
+import grassNav from "../assets/grass-nav.png";
+
 const MENUS = [
   { id: "walk", label: "산책" },
   { id: "friends", label: "친구" },
@@ -223,6 +225,12 @@ export default function RoomPage({ room, onBack }) {
       </div>
 
       <nav className="room-bottom-nav" aria-label="주 메뉴">
+        <img
+          className="room-nav-grass"
+          src={grassNav}
+          alt=""
+        />
+
         {MENUS.map((menu) => (
           <button
             key={menu.id}
