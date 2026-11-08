@@ -48,7 +48,7 @@
 
 .room-content {
   flex: 1;
-  padding: 24px 20px 48px;
+  padding: 24px 20px;
 }
 
 .room-heading {
@@ -144,6 +144,7 @@
   width: max-content;
   min-width: 100%;
   min-height: auto;
+  margin: 0;
 }
 
 .room-help {
@@ -319,4 +320,87 @@
   .room-my-cat-info p {
     font-size: 11px;
   }
+}
+
+.crown-banner {
+  margin-top: 14px;
+  background: white;
+  padding: 12px 20px;
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: #2f3640;
+}
+
+/* 순위 카드 전체 박스 */
+.ranking-card {
+  background: white;
+  padding: 18px 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 60px;
+  margin-top: 10px;
+}
+
+/* 개별 순위 아이템 줄 */
+.ranking-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 왼쪽 영역 (왕관, 숫자, 이름) */
+.rank-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+/* 1위 왕관 아이콘 위치 */
+.rank-crown {
+  position: absolute;
+  top: -10px;
+  left: 14px;
+  font-size: 11px;
+}
+
+.rank-crown.empty {
+  display: none;
+}
+
+/* 순위 숫자 */
+.rank-number {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2f3640;
+  width: 24px;
+  text-align: center;
+}
+
+/* 이름 스타일 및 색상 */
+.rank-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2f3640;
+}
+
+.rank-name.blue {
+  color: #3498db;
+}
+
+.rank-name.orange {
+  color: #e67e22;
+}
+
+/* 오른쪽 시간 및 퍼센트 */
+.rank-time {
+  font-size: 13px;
+  font-weight: 600;
+  color: #718093;
 }

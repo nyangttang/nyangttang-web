@@ -65,6 +65,7 @@ export default function RoomPage({ room, onBack }) {
       </div>
 
       <div className="room-content">
+        {/* 1. 산책 탭 상단 영역 */}
         {tab === "walk" && (
           <>
             <header className="room-heading">
@@ -91,6 +92,7 @@ export default function RoomPage({ room, onBack }) {
           </>
         )}
 
+        {/* 2. 친구 탭 영역 */}
         {tab === "friends" && (
           <>
             <header className="room-heading">
@@ -115,8 +117,8 @@ export default function RoomPage({ room, onBack }) {
             </section>
 
             <p className="room-help">
-              입력한 내 고양이 정보예요. 실제 친구 목록과 산책 상태는
-              서버 연결 후 표시돼요.
+              입력한 내 고양이 정보예요. 실제 친구 목록과 산책 상태는 서버 연결
+              후 표시돼요.
             </p>
 
             <section className="room-invite" aria-label="방 코드">
@@ -143,54 +145,17 @@ export default function RoomPage({ room, onBack }) {
           </>
         )}
 
+        {/* 3. 기록 탭 상단 영역 */}
         {tab === "records" && (
-          <header className="room-heading">
-            <h1>오늘의 산책 지도</h1>
-            <p>{today} · 저장 기록 확인 전</p>
-          </header>
+          <>
+            <header className="room-heading">
+              <h1>오늘의 산책 지도</h1>
+              <p>{today} · 저장 기록 확인 전</p>
+            </header>
+          </>
         )}
 
-        {/* 탭을 바꿔도 기존 지도를 유지해 이동 상태가 초기화되지 않아요. */}
-        <section
-          className="room-map-section"
-          hidden={tab !== "walk" && tab !== "records"}
-          aria-label="예시 지도"
-        >
-          <div className="room-map-frame">
-            <MapGrid />
-          </div>
-          <p className="room-help">
-            예시 데이터로 움직이는 지도예요. 내 고양이·실제 기록과는
-            아직 연결되지 않았어요.
-          </p>
-        </section>
-
-        {tab === "records" && (
-          <section className="room-record-card">
-            <h2>오늘의 산책 기록</h2>
-
-            <dl className="room-record-values">
-              <div>
-                <dt>공부 시간</dt>
-                <dd>—</dd>
-              </div>
-              <div>
-                <dt>목표 시간</dt>
-                <dd>{goalText}</dd>
-              </div>
-              <div>
-                <dt>내 땅</dt>
-                <dd>—%</dd>
-              </div>
-            </dl>
-
-            <p className="room-help">
-              저장 기록을 연결하면 오늘의 순위와 고양이별 공부 시간을
-              여기에 보여줄 거예요.
-            </p>
-          </section>
-        )}
-
+        {/* 4. 기기 탭 영역 */}
         {tab === "device" && (
           <>
             <header className="room-heading">
@@ -222,11 +187,21 @@ export default function RoomPage({ room, onBack }) {
               </dl>
 
               <p className="room-help">
-                기기 연결 기능을 연결하면 실제 연결 상태와 센서 상태를
-                확인할 수 있어요.
+                기기 연결 기능을 연결하면 실제 연결 상태와 센서 상태를 확인할 수
+                있어요.
               </p>
             </section>
           </>
+        )}
+
+        {/* 💡 산책 탭과 기록 탭에서만 공통으로 지도를 노출 */}
+        {(tab === "walk" || tab === "records") && (
+          <section className="room-map-section" aria-label="지도 영역">
+            <div>
+              {/* 🌟 아래와 같이 currentTab={tab} 을 전달해줍니다 */}
+              <MapGrid showMarkers={tab === "walk"} currentTab={tab} />
+            </div>
+          </section>
         )}
       </div>
 

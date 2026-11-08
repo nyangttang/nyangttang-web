@@ -1,16 +1,32 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./MapGrid.css";
 import { fetchMapData } from "../data/dummyMapData";
 
-export default function MapGrid() {
+export default function MapGrid({ showMarkers = true, currentTab = "walk" }) {
   const gridCells = Array.from({ length: 100 }, (_, index) => index);
 
   const [cats, setCats] = useState([]);
   const [owners, setOwners] = useState({});
   const [users, setUsers] = useState({});
   const [isLiveRunning, setIsLiveRunning] = useState(true);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  // 각 고양이 첫 좌표 (모서리)
+  // 테스트 기록 설정
+  const RECORD_INTERVAL = 1000;
+  const RECORD_COUNT = 288;
+
+  const dateRef = useRef(
+    new Date().toLocaleDateString("sv-SE").replaceAll("-", "."),
+  );
+
+  const recordCountRef = useRef(0);
+
+  const catsRef = useRef([]);
+  const ownersRef = useRef({});
+
+  const initialCatsRef = useRef([]);
+  const initialOwnersRef = useRef({});
+
   const startPositions = {
     user1: { r: 0, c: 0 },
     user2: { r: 0, c: 9 },
@@ -21,23 +37,77 @@ export default function MapGrid() {
   useEffect(() => {
     async function loadData() {
       const data = await fetchMapData();
+
       const initialCatsWithWait = data.cats.map((cat) => ({
         ...cat,
         waitCount: 0,
       }));
+
       setCats(initialCatsWithWait);
       setOwners(data.owners);
+
       if (data.users) {
         setUsers(data.users);
       }
+
+      catsRef.current = initialCatsWithWait;
+      ownersRef.current = data.owners;
+
+      initialCatsRef.current = initialCatsWithWait;
+      initialOwnersRef.current = data.owners;
+
+      const saved = JSON.parse(localStorage.getItem("mapPathHistory") || "{}");
+      const today = dateRef.current;
+
+      if (!saved[today]) {
+        saved[today] = {};
+      }
+
+      data.cats.forEach((cat) => {
+        if (!Array.isArray(saved[today][cat.id])) {
+          saved[today][cat.id] = [];
+        }
+      });
+
+      localStorage.setItem("mapPathHistory", JSON.stringify(saved));
+      setIsDataLoaded(true);
     }
+
     loadData();
   }, []);
 
-  // 고양이 움직이기 및 대기 판정 로직
+  function getTextColor(hexColor) {
+    if (!hexColor) return "#2f3640";
+
+    let color = hexColor.replace("#", "");
+
+    if (color.length === 3) {
+      color = color
+        .split("")
+        .map((c) => c + c)
+        .join("");
+    }
+
+    const r = parseInt(color.substring(0, 2), 16);
+    const g = parseInt(color.substring(2, 4), 16);
+    const b = parseInt(color.substring(4, 6), 16);
+
+    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+
+    return yiq >= 128 ? "#2f3640" : "#ffffff";
+  }
+
+  const getDist = (r, c, userId) => {
+    const start = startPositions[userId];
+    return Math.abs(r - start.r) + Math.abs(c - start.c);
+  };
+
   const stepCatWalk = (cat, currentOwners) => {
     if (cat.waitCount && cat.waitCount > 0) {
-      return { nextPos: cat.pos, newWaitCount: cat.waitCount - 1 };
+      return {
+        nextPos: cat.pos,
+        newWaitCount: cat.waitCount - 1,
+      };
     }
 
     const width = 10;
@@ -45,37 +115,41 @@ export default function MapGrid() {
     const r = Math.floor(currPos / width);
     const c = currPos % width;
 
-    // 4개의 모서리 본진 좌표
     const cornerPositions = [0, 9, 90, 99];
-
     const neighbors = [];
-    if (r > 0)
+
+    if (r > 0) {
       neighbors.push({
         pos: (r - 1) * width + c,
         dist: getDist(r - 1, c, cat.id),
         owner: currentOwners[(r - 1) * width + c],
       });
-    if (r < 9)
+    }
+
+    if (r < 9) {
       neighbors.push({
         pos: (r + 1) * width + c,
         dist: getDist(r + 1, c, cat.id),
         owner: currentOwners[(r + 1) * width + c],
       });
-    if (c > 0)
+    }
+
+    if (c > 0) {
       neighbors.push({
         pos: r * width + (c - 1),
         dist: getDist(r, c - 1, cat.id),
         owner: currentOwners[r * width + (c - 1)],
       });
-    if (c < 9)
+    }
+
+    if (c < 9) {
       neighbors.push({
         pos: r * width + (c + 1),
         dist: getDist(r, c + 1, cat.id),
         owner: currentOwners[r * width + (c + 1)],
       });
+    }
 
-    // 절대 침범 금지 : 모서리 칸인데, 주인이 '다른 유저'라면 이동 후보에서 제외
-    // 적어도 한칸은 줘야할 것 같아서 일단 막아둠
     const safeNeighbors = neighbors.filter((n) => {
       if (cornerPositions.includes(n.pos)) {
         if (n.owner && n.owner !== cat.id) {
@@ -85,18 +159,23 @@ export default function MapGrid() {
       return true;
     });
 
-    // 이동 가능한 후보 찾기 (빈 땅 우선, 없으면 남의 땅 포함 전체)
     let validMoves = safeNeighbors.filter((n) => !n.owner);
+
     if (validMoves.length === 0) {
       validMoves = safeNeighbors.filter((n) => n.owner !== cat.id);
     }
+
     if (validMoves.length === 0) {
       validMoves = safeNeighbors;
     }
 
-    if (validMoves.length === 0) return { nextPos: cat.pos, newWaitCount: 0 };
+    if (validMoves.length === 0) {
+      return {
+        nextPos: cat.pos,
+        newWaitCount: 0,
+      };
+    }
 
-    // 정렬 로직
     validMoves.sort((a, b) => {
       const isTargetOpponent = a.owner && a.owner !== cat.id;
 
@@ -107,70 +186,121 @@ export default function MapGrid() {
           return a.dist - b.dist;
         }
       }
+
       return Math.random() - 0.5;
     });
 
     const targetMove = validMoves[0];
     const nextPos = targetMove.pos;
-
-    // 이동하려는 곳이 '다른 사람의 땅'이면 시간 두배로 소모하기
     const isSteppingOnOpponent =
       targetMove.owner && targetMove.owner !== cat.id;
-    const newWaitCount = isSteppingOnOpponent ? 2 : 0; // 2틱 동안 멈춰 서서 대기
+    const newWaitCount = isSteppingOnOpponent ? 2 : 0;
 
     return { nextPos, newWaitCount };
   };
 
-  // 내 모서리랑 거리 구하기
-  const getDist = (r, c, userId) => {
-    const start = startPositions[userId];
-    return Math.abs(r - start.r) + Math.abs(c - start.c);
+  const getNextDate = (dateString) => {
+    const [year, month, day] = dateString.split(".").map(Number);
+    const date = new Date(year, month - 1, day + 1);
+
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join(".");
   };
 
-  // 시간 흐름에 따라 고양이 움직이는 코드
   useEffect(() => {
-    if (!isLiveRunning) return;
-
-    const intervalTime = 0.2 * 1000;
+    if (!isLiveRunning || !isDataLoaded) return;
 
     const timer = setInterval(() => {
-      setCats((prevCats) => {
-        let updatedOwners = { ...owners };
+      let updatedOwners = { ...ownersRef.current };
 
-        const newCats = prevCats.map((cat) => {
-          if (cat.status === "studying") {
-            const { nextPos, newWaitCount } = stepCatWalk(cat, updatedOwners);
-            if (cat.pos === nextPos) {
-              // 제자리에 멈춰서 대기 카운트를 소모 중인 경우
-              return { ...cat, waitCount: newWaitCount };
-            } else {
-              // 실제로 칸을 이동했거나, 대기가 끝나고 땅을 점령하는 타이밍
-              const currentOwner = updatedOwners[nextPos];
-              // 빈 땅이거나 내 땅이거나, 혹은 남의 땅이지만 대기를 거쳐 진입한 경우 내 땅으로 변경
-              if (
-                !currentOwner ||
-                currentOwner === cat.id ||
-                cat.waitCount === 0
-              ) {
-                updatedOwners[nextPos] = cat.id;
-              }
+      const newCats = catsRef.current.map((cat) => {
+        if (cat.status === "studying") {
+          const { nextPos, newWaitCount } = stepCatWalk(cat, updatedOwners);
 
-              return { ...cat, pos: nextPos, waitCount: newWaitCount };
+          if (cat.pos === nextPos) {
+            return { ...cat, waitCount: newWaitCount };
+          } else {
+            const currentOwner = updatedOwners[nextPos];
+
+            if (
+              !currentOwner ||
+              currentOwner === cat.id ||
+              cat.waitCount === 0
+            ) {
+              updatedOwners[nextPos] = cat.id;
             }
+
+            return {
+              ...cat,
+              pos: nextPos,
+              waitCount: newWaitCount,
+            };
           }
-          return cat;
+        }
+
+        return cat;
+      });
+
+      catsRef.current = newCats;
+      ownersRef.current = updatedOwners;
+
+      setCats(newCats);
+      setOwners(updatedOwners);
+
+      const today = dateRef.current;
+      const saved = JSON.parse(localStorage.getItem("mapPathHistory") || "{}");
+
+      if (!saved[today]) {
+        saved[today] = {};
+      }
+
+      newCats.forEach((cat) => {
+        if (!Array.isArray(saved[today][cat.id])) {
+          saved[today][cat.id] = [];
+        }
+
+        saved[today][cat.id].push(cat.pos);
+      });
+
+      recordCountRef.current += 1;
+      localStorage.setItem("mapPathHistory", JSON.stringify(saved));
+
+      if (recordCountRef.current >= RECORD_COUNT) {
+        const nextDate = getNextDate(today);
+        dateRef.current = nextDate;
+        recordCountRef.current = 0;
+
+        const resetCats = initialCatsRef.current.map((cat) => ({
+          ...cat,
+          waitCount: 0,
+        }));
+
+        const resetOwners = { ...initialOwnersRef.current };
+
+        catsRef.current = resetCats;
+        ownersRef.current = resetOwners;
+
+        setCats(resetCats);
+        setOwners(resetOwners);
+
+        saved[nextDate] = {};
+        resetCats.forEach((cat) => {
+          saved[nextDate][cat.id] = [];
         });
 
-        setOwners(updatedOwners);
-        return newCats;
-      });
-    }, intervalTime);
+        localStorage.setItem("mapPathHistory", JSON.stringify(saved));
+      }
+    }, RECORD_INTERVAL);
 
     return () => clearInterval(timer);
-  }, [isLiveRunning, owners]);
+  }, [isLiveRunning, isDataLoaded]);
 
   const calculateStats = () => {
     const counts = {};
+
     Object.keys(users).forEach((userId) => {
       counts[userId] = 0;
     });
@@ -180,6 +310,7 @@ export default function MapGrid() {
         counts[ownerId] += 1;
       }
     });
+
     return counts;
   };
 
@@ -193,64 +324,120 @@ export default function MapGrid() {
     return "#f1f2f6";
   };
 
+  // 점수(땅 차지 비율) 기준 내림차순 정렬된 유저 배열 생성
+  const sortedUsers = Object.entries(users).sort(([idA], [idB]) => {
+    return (stats[idB] || 0) - (stats[idA] || 0);
+  });
+
+  // 가장 많이 산책한 1등 유저 이름
+  const topUserName =
+    sortedUsers.length > 0 ? users[sortedUsers[0][0]]?.name : "우나";
+
   return (
-    <div className="map-container">
-      <h2>기말고사 냥냥방</h2>
-      <div>
-        여기다가 본인 정보 넣어줘야함
-        <p>고양이 산책중 내 당 nn퍼</p>
-        <p>막대기로 목표시간 얼마나 채웠는지 보여주는 곳</p>
-      </div>
+    <>
+      <div className="map-container">
+        <div className="grid-board">
+          {gridCells.map((cellId) => {
+            const currentCat = cats.find((cat) => cat.pos === cellId);
 
-      <div className="grid-board">
-        {gridCells.map((cellId) => {
-          const currentCat = cats.find((cat) => cat.pos === cellId);
-
-          return (
-            <div
-              key={cellId}
-              className="cell"
-              style={{ backgroundColor: getCellColor(cellId) }}
-            >
-              {currentCat ? (
-                <div
-                  className="cat-marker"
-                  style={{ borderColor: currentCat.color }}
-                >
-                  <span>{currentCat.status === "studying" ? "🐱" : "💤"}</span>
-                  {/* 대기 중일 때 표정을 다르게 하거나 표시를 남길 수도 있어요 */}
-                  <span
-                    className="cat-tag"
-                    style={{ backgroundColor: currentCat.color }}
+            return (
+              <div
+                key={cellId}
+                className="cell"
+                style={{
+                  backgroundColor: getCellColor(cellId),
+                }}
+              >
+                {showMarkers && currentCat ? (
+                  <div
+                    className="cat-marker"
+                    style={{
+                      borderColor: currentCat.color,
+                    }}
                   >
-                    {currentCat.name}{" "}
-                    {currentCat.waitCount > 0
-                      ? `(대기중 ${currentCat.waitCount})`
-                      : ""}
-                  </span>
-                </div>
-              ) : null}
+                    <span>
+                      {currentCat.status === "studying" ? "🐱" : "💤"}
+                    </span>
 
-              {/* 그리드 번호 확인용 코드 <span className="cell-num">{cellId + 1}</span>*/}
-            </div>
-          );
-        })}
+                    <span
+                      className="cat-tag"
+                      style={{
+                        backgroundColor: currentCat.color,
+                      }}
+                    >
+                      {currentCat.name}{" "}
+                      {currentCat.waitCount > 0
+                        ? `(대기중 ${currentCat.waitCount})`
+                        : ""}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="stats-container">
-        {Object.entries(users).map(([userId, userInfo]) => (
-          <div
-            key={userId}
-            className="stat-pill"
-            style={{ backgroundColor: userInfo.color }}
-          >
-            <span>
-              {userInfo.name} {userId === "user1" && "(나)"}
-            </span>
-            <b>{stats[userId] || 0}%</b>
+      {/* currentTab이 'walk'일 때: 퍼센트 상태창 출력 */}
+      {currentTab === "walk" && (
+        <div className="stats-container">
+          {Object.entries(users).map(([userId, userInfo]) => {
+            const dynamicTextColor = getTextColor(userInfo.color);
+
+            return (
+              <div
+                key={userId}
+                className="stat-pill"
+                style={{
+                  backgroundColor: userInfo.color,
+                  color: dynamicTextColor,
+                }}
+              >
+                <span className="stat-text">
+                  {userInfo.name} {userId === "user1" && "(나)"}{" "}
+                  <b>{stats[userId] || 0}%</b>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* currentTab이 'records'일 때: 정렬된 랭킹 카드 출력 */}
+      {currentTab === "records" && (
+        <div className="records-below-container">
+          <div className="record-summary-text">
+            현재 {topUserName}님이 가장 많이 산책했어! 🐾
           </div>
-        ))}
-      </div>
-    </div>
+
+          <section className="ranking-card" aria-label="참여자 순위">
+            {sortedUsers.map(([userId, userInfo], index) => {
+              const rank = index + 1;
+              const isFirst = rank === 1;
+
+              return (
+                <div key={userId} className="ranking-item">
+                  <div className="rank-left">
+                    <span className={`rank-crown ${isFirst ? "" : "empty"}`}>
+                      {isFirst ? "👑" : ""}
+                    </span>
+                    <span className={`rank-number ${isFirst ? "gold" : ""}`}>
+                      {rank}
+                    </span>
+                    <span
+                      className="rank-name"
+                      style={{ color: userInfo.color }}
+                    >
+                      {userInfo.name}
+                    </span>
+                  </div>
+                  <span className="rank-time">-- {stats[userId] || 0}%</span>
+                </div>
+              );
+            })}
+          </section>
+        </div>
+      )}
+    </>
   );
 }
