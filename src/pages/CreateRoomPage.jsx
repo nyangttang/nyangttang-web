@@ -1,12 +1,17 @@
 import { useState } from "react";
 import "./CreateRoomPage.css";
+import pawPink from "../assets/paw-pink.png";
+import pawBrown from "../assets/paw-brown.png";
+import createRoom1 from "../assets/create-room-1.png";
+import createRoom2 from "../assets/create-room-2.png";
+import createRoom3 from "../assets/create-room-3.png";
 
 const COLORS = [
-  { name: "흰색", value: "#ffffff" },
-  { name: "연회색", value: "#dedbd8" },
-  { name: "크림색", value: "#ffe0ad" },
-  { name: "치즈색", value: "#d9b786" },
-  { name: "회색", value: "#8d8580" },
+  { name: "흰냥", value: "#ffffff" },
+  { name: "회색냥", value: "#dedbd8" },
+  { name: "치즈냥", value: "#ffe0ad" },
+  { name: "삼색냥", value: "#d9b786" },
+  { name: "검정냥", value: "#8d8580" },
 ];
 
 export default function CreateRoomPage({ onBack, onPreview }) {  const [step, setStep] = useState(1);
@@ -64,20 +69,19 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
         aria-label={`방 생성 ${step}/3단계`}
       >
         {[1, 2, 3].map((number) => (
-          <span
+          <img
             key={number}
-            className={number === step ? "is-active" : ""}
-            aria-hidden="true"
-          >
-            🐾
-          </span>
+            src={number <= step ? pawPink : pawBrown}
+            alt=""
+            className="create-step-paw"
+          />
         ))}
       </div>
 
       {step === 1 && (
         <>
           <div className="create-illustration" aria-hidden="true">
-            📦🐱
+            <img src={createRoom1} alt="" />
           </div>
 
           <h1 className="create-title">새 방 만들기</h1>
@@ -121,7 +125,7 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
       {step === 2 && (
         <>
           <div className="create-illustration" aria-hidden="true">
-            🐱🍪
+            <img src={createRoom2} alt="" />
           </div>
 
           <h1 className="create-title">고양이 설정</h1>
@@ -191,7 +195,7 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
             <p className="create-message" role="status">{message}</p>
 
             <button className="create-primary" type="submit">
-              생성 미리보기
+              입장
             </button>
           </form>
         </>
@@ -199,17 +203,17 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
 
       {step === 3 && (
         <div className="create-complete">
-          <div className="create-illustration" aria-hidden="true">
-            🎉🐱
+          <div className="create-illustration">
+            <img src={createRoom3} alt="" />
           </div>
 
-          <h1 className="create-title">방 생성 완료 미리보기</h1>
+          <h1 className="create-title">방이 생성되었어요!</h1>
           <p className="create-summary">
             {roomName} · 최대 {capacity}명
           </p>
 
           <label className="create-field">
-            코드를 보내 친구랑 함께 산책해요
+            코드를 보내 친구냥과 함께 산책해요
             <input value="서버 연결 후 발급돼요" readOnly />
           </label>
 
@@ -232,7 +236,7 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
               })
             }
           >
-            방 화면 미리보기
+            메인으로
           </button>
         </div>
       )}

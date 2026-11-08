@@ -1,4 +1,5 @@
 import "./HomePage.css";
+import homeCat from "../assets/home-cat.png";
 
 export default function HomePage({ onJoin, onCreate }) {
   return (
@@ -6,8 +7,7 @@ export default function HomePage({ onJoin, onCreate }) {
       <h1 className="home-title">냥땅 🐾</h1>
 
       <div className="home-illustration">
-        {/* 고양이 원본 이미지를 넣으면 이 부분을 img로 교체 */}
-        <span role="img" aria-label="고양이">🐱</span>
+        <img src={homeCat} alt="" />
       </div>
 
       <p className="home-description">
