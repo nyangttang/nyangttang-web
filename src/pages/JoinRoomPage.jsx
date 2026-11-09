@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { enterRoom } from '../api/enterRoom';
+import { errorMessage } from '../api/client';
+import DeviceKeyDialog from '../components/DeviceKeyDialog';
+import { useRef, useState } from "react";
 import "./JoinRoomPage.css";
 import joinCat from "../assets/join-cat.png";
 
@@ -16,33 +19,31 @@ export default function JoinRoomPage({ onBack, onPreview }) {  const [name, setN
   const [roomCode, setRoomCode] = useState("");
   const [goalMinutes, setGoalMinutes] = useState("");
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const working = useRef(false);
+  const [askKey, setAskKey] = useState(false);
 
   function handleSubmit(event) {
     event.preventDefault();
+    if (working.current) return;
+    if (deviceCode.trim()) setAskKey(true);
+    else submit('');
+  }
 
-    // 다음 단계에서 이 값으로 서버에 입장을 요청할 예정
-    const form = {
-      name: name.trim(),
-      color,
-      deviceCode: deviceCode.trim(),
-      roomCode: roomCode.trim(),
-      goalMinutes: Number(goalMinutes),
-    };
-
-    if (!form.name || !form.deviceCode || !form.roomCode) {
-      setMessage("이름, 기기 코드, 방 코드를 확인해 주세요.");
-      return;
-    }
-
-    onPreview({
-      ...form,
-      roomName: "참여할 방",
-      capacity: null,
-    });  }
+  async function submit(deviceKey, code = deviceCode) {
+    if (working.current) return;
+    setAskKey(false); working.current = true; setBusy(true); setMessage('');
+    try {
+      const result = await enterRoom('join', {name, color, deviceCode:code, roomCode, goalMinutes}, deviceKey);
+      onPreview(result.room, result.notice);
+    } catch (error) { setMessage(errorMessage(error)); }
+    finally { working.current = false; setBusy(false); }
+  }
 
   return (
     <main className="join-page">
-      <button className="join-back" type="button" onClick={onBack}>
+      {askKey && <DeviceKeyDialog deviceCode={deviceCode} onConfirm={({code, key}) => submit(key, code)} onCancel={() => setAskKey(false)} />}
+      <button className="join-back" disabled={busy} type="button" onClick={onBack}>
         ← 처음으로
       </button>
 
@@ -57,6 +58,7 @@ export default function JoinRoomPage({ onBack, onPreview }) {  const [name, setN
           <label className="join-field">
             고양이 이름
             <input
+                  disabled={busy}
               value={name}
               onChange={(event) => setName(event.target.value)}
               maxLength={12}
@@ -70,6 +72,7 @@ export default function JoinRoomPage({ onBack, onPreview }) {  const [name, setN
               {COLORS.map((item) => (
                 <label className="join-color-option" key={item.value}>
                   <input
+                  disabled={busy}
                     type="radio"
                     name="catColor"
                     value={item.value}
@@ -89,16 +92,17 @@ export default function JoinRoomPage({ onBack, onPreview }) {  const [name, setN
           <label className="join-field">
             식빵냥 연결
             <input
+                  disabled={busy}
               value={deviceCode}
               onChange={(event) => setDeviceCode(event.target.value)}
               placeholder="기기 코드"
-              required
             />
           </label>
 
           <label className="join-field">
             방 코드
             <input
+                  disabled={busy}
               value={roomCode}
               onChange={(event) => setRoomCode(event.target.value)}
               required
@@ -108,6 +112,7 @@ export default function JoinRoomPage({ onBack, onPreview }) {  const [name, setN
           <label className="join-field">
             목표 시간
             <select
+                  disabled={busy}
               value={goalMinutes}
               onChange={(event) => setGoalMinutes(event.target.value)}
               required
@@ -125,7 +130,7 @@ export default function JoinRoomPage({ onBack, onPreview }) {  const [name, setN
 
         <p className="join-message" role="status">{message}</p>
 
-        <button className="join-submit" type="submit">
+        <button className="join-submit" type="submit" disabled={busy}>
           입장
         </button>
       </form>

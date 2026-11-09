@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { enterRoom } from '../api/enterRoom';
+import { errorMessage } from '../api/client';
+import DeviceKeyDialog from '../components/DeviceKeyDialog';
+import { useRef, useState } from "react";
 import "./CreateRoomPage.css";
 import pawPink from "../assets/paw-pink.png";
 import pawBrown from "../assets/paw-brown.png";
@@ -15,6 +18,7 @@ const COLORS = [
 ];
 
 export default function CreateRoomPage({ onBack, onPreview }) {  const [step, setStep] = useState(1);
+  const [createdRoom, setCreatedRoom] = useState(null);
   const [roomName, setRoomName] = useState("");
   const [capacity, setCapacity] = useState("");
   const [catName, setCatName] = useState("");
@@ -22,6 +26,9 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
   const [deviceCode, setDeviceCode] = useState("");
   const [goalMinutes, setGoalMinutes] = useState("");
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const working = useRef(false);
+  const [askKey, setAskKey] = useState(false);
 
   function handleNext(event) {
     event.preventDefault();
@@ -37,23 +44,29 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
 
   function handleCreate(event) {
     event.preventDefault();
+    if (working.current) return;
+    if (deviceCode.trim()) setAskKey(true);
+    else submit('');
+  }
 
-    if (!catName.trim() || !deviceCode.trim()) {
-      setMessage("고양이 이름과 기기 코드를 확인해 주세요.");
-      return;
-    }
-
-    // 서버 연결 시 여기에서 방 생성과 방장 등록을 요청해요.
-    setMessage("");
-    setStep(3);
+  async function submit(deviceKey, code = deviceCode) {
+    if (working.current) return;
+    setAskKey(false); working.current = true; setBusy(true); setMessage('');
+    try {
+      const result = await enterRoom('create', {roomName, capacity, name:catName, color, deviceCode:code, goalMinutes}, deviceKey);
+      setCreatedRoom(result.room); setMessage(result.notice); setStep(3);
+    } catch (error) { setMessage(errorMessage(error)); }
+    finally { working.current = false; setBusy(false); }
   }
 
   return (
     <main className="create-page">
+      {askKey && <DeviceKeyDialog deviceCode={deviceCode} onConfirm={({code, key}) => submit(key, code)} onCancel={() => setAskKey(false)} />}
       {step < 3 && (
         <button
           className="create-back"
           type="button"
+          disabled={busy}
           onClick={() => {
             setMessage("");
             if (step === 1) onBack();
@@ -91,6 +104,7 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
               <label className="create-field">
                 방 이름
                 <input
+                  disabled={busy}
                   value={roomName}
                   onChange={(event) => setRoomName(event.target.value)}
                   maxLength={20}
@@ -101,6 +115,7 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
                 <label className="create-field">
                 인원
                 <select
+                  disabled={busy}
                     value={capacity}
                     onChange={(event) => setCapacity(event.target.value)}
                     required
@@ -115,7 +130,7 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
             </div>
 
             <p className="create-message" role="status">{message}</p>
-            <button className="create-primary" type="submit">
+            <button className="create-primary" type="submit" disabled={busy}>
               다음
             </button>
           </form>
@@ -135,6 +150,7 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
               <label className="create-field">
                 고양이 이름
                 <input
+                  disabled={busy}
                   value={catName}
                   onChange={(event) => setCatName(event.target.value)}
                   maxLength={12}
@@ -148,6 +164,7 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
                   {COLORS.map((item) => (
                     <label className="create-color-option" key={item.value}>
                       <input
+                  disabled={busy}
                         type="radio"
                         name="createCatColor"
                         value={item.value}
@@ -167,16 +184,17 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
               <label className="create-field">
                 식빵냥 연결
                 <input
+                  disabled={busy}
                   value={deviceCode}
                   onChange={(event) => setDeviceCode(event.target.value)}
                   placeholder="기기 코드"
-                  required
                 />
               </label>
 
               <label className="create-field">
                 목표 시간
                 <select
+                  disabled={busy}
                   value={goalMinutes}
                   onChange={(event) => setGoalMinutes(event.target.value)}
                   required
@@ -194,7 +212,7 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
 
             <p className="create-message" role="status">{message}</p>
 
-            <button className="create-primary" type="submit">
+            <button className="create-primary" type="submit" disabled={busy}>
               입장
             </button>
           </form>
@@ -209,32 +227,22 @@ export default function CreateRoomPage({ onBack, onPreview }) {  const [step, se
 
           <h1 className="create-title">방이 생성되었어요!</h1>
           <p className="create-summary">
-            {roomName} · 최대 {capacity}명
+            {createdRoom?.roomName} · 최대 {createdRoom?.capacity}명
           </p>
 
           <label className="create-field">
             코드를 보내 친구냥과 함께 산책해요
-            <input value="서버 연결 후 발급돼요" readOnly />
+            <input value={createdRoom?.roomCode || ""} readOnly />
           </label>
 
           <p className="create-message">
-            아직 실제 방은 생성되지 않았어요.
+            {message || "방 코드로 친구를 초대해 주세요."}
           </p>
 
           <button
             className="create-primary"
             type="button"
-            onClick={() =>
-              onPreview({
-                roomName: roomName.trim(),
-                capacity: Number(capacity),
-                name: catName.trim(),
-                color,
-                deviceCode: deviceCode.trim(),
-                goalMinutes: Number(goalMinutes),
-                roomCode: "",
-              })
-            }
+            onClick={() => onPreview(createdRoom, message)}
           >
             메인으로
           </button>
