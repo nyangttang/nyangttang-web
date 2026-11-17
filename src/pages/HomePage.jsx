@@ -1,7 +1,7 @@
 import "./HomePage.css";
 import homeCat from "../assets/home-cat.png";
 
-export default function HomePage({ onJoin, onCreate }) {
+export default function HomePage({ onJoin, onCreate, onLogin, onLogout, loggedIn }) {
   return (
     <main className="home-page">
       <h1 className="home-title">냥땅 🐾</h1>
@@ -25,6 +25,8 @@ export default function HomePage({ onJoin, onCreate }) {
           이미 방이 있나요?
           <button onClick={onJoin}>방 입장하기</button>
         </p>
+        {loggedIn && <p className="home-join"><button onClick={onLogout}>로그아웃</button></p>}
+        {!loggedIn && <p className="home-join"><button onClick={onLogin}>기존 고양이로 로그인</button></p>}
       </div>
     </main>
   );

@@ -1,6 +1,7 @@
-import { enterRoom } from '../api/enterRoom';
-import { errorMessage } from '../api/client';
-import DeviceKeyDialog from '../components/DeviceKeyDialog';
+import { enterRoom } from "../api/enterRoom";
+import { errorMessage } from "../api/client";
+import { getSession } from "../api/client";
+import { formColor } from "../api/viewModels";
 import { useRef, useState } from "react";
 import "./JoinRoomPage.css";
 import joinCat from "../assets/join-cat.png";
@@ -13,37 +14,62 @@ const COLORS = [
   { name: "검정냥", value: "#8d8580" },
 ];
 
-export default function JoinRoomPage({ onBack, onPreview }) {  const [name, setName] = useState("");
-  const [color, setColor] = useState(COLORS[0].value);
+export default function JoinRoomPage({
+  onBack,
+  onPreview,
+  preferredColor,
+  onLogin,
+}) {
+  const [name, setName] = useState(getSession()?.nickname || "");
+  const [color, setColor] = useState(formColor(preferredColor));
   const [deviceCode, setDeviceCode] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [goalMinutes, setGoalMinutes] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const working = useRef(false);
-  const [askKey, setAskKey] = useState(false);
+  const [password, setPassword] = useState("");
+  const [duplicate, setDuplicate] = useState(false);
 
   function handleSubmit(event) {
     event.preventDefault();
     if (working.current) return;
-    if (deviceCode.trim()) setAskKey(true);
-    else submit('');
+    submit();
   }
 
-  async function submit(deviceKey, code = deviceCode) {
+  async function submit() {
     if (working.current) return;
-    setAskKey(false); working.current = true; setBusy(true); setMessage('');
+    setDuplicate(false);
+    working.current = true;
+    setBusy(true);
+    setMessage("");
     try {
-      const result = await enterRoom('join', {name, color, deviceCode:code, roomCode, goalMinutes}, deviceKey);
+      const result = await enterRoom("join", {
+        name,
+        color,
+        deviceCode,
+        password,
+        roomCode,
+        goalMinutes,
+      });
       onPreview(result.room, result.notice);
-    } catch (error) { setMessage(errorMessage(error)); }
-    finally { working.current = false; setBusy(false); }
+    } catch (error) {
+      setMessage(errorMessage(error));
+      setDuplicate(error.code === "NICKNAME_TAKEN");
+    } finally {
+      working.current = false;
+      setBusy(false);
+    }
   }
 
   return (
     <main className="join-page">
-      {askKey && <DeviceKeyDialog deviceCode={deviceCode} onConfirm={({code, key}) => submit(key, code)} onCancel={() => setAskKey(false)} />}
-      <button className="join-back" disabled={busy} type="button" onClick={onBack}>
+      <button
+        className="join-back"
+        disabled={busy}
+        type="button"
+        onClick={onBack}
+      >
         ← 처음으로
       </button>
 
@@ -58,7 +84,8 @@ export default function JoinRoomPage({ onBack, onPreview }) {  const [name, setN
           <label className="join-field">
             고양이 이름
             <input
-                  disabled={busy}
+              disabled={busy}
+              readOnly={!!getSession()?.accessToken}
               value={name}
               onChange={(event) => setName(event.target.value)}
               maxLength={12}
@@ -66,13 +93,29 @@ export default function JoinRoomPage({ onBack, onPreview }) {  const [name, setN
             />
           </label>
 
+          {!getSession()?.accessToken && (
+            <label className="join-field">
+              비밀번호
+              <input
+                type="password"
+                autoComplete="new-password"
+                placeholder="6자 이상"
+                minLength={6}
+                maxLength={64}
+                required
+                disabled={busy}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
+          )}
           <fieldset className="join-colors">
             <legend>고양이 색상</legend>
             <div className="join-color-options">
               {COLORS.map((item) => (
                 <label className="join-color-option" key={item.value}>
                   <input
-                  disabled={busy}
+                    disabled={busy}
                     type="radio"
                     name="catColor"
                     value={item.value}
@@ -92,17 +135,19 @@ export default function JoinRoomPage({ onBack, onPreview }) {  const [name, setN
           <label className="join-field">
             식빵냥 연결
             <input
-                  disabled={busy}
+              disabled={busy}
               value={deviceCode}
               onChange={(event) => setDeviceCode(event.target.value)}
               placeholder="기기 코드"
+              autoComplete="off"
+              maxLength={32}
             />
           </label>
 
           <label className="join-field">
             방 코드
             <input
-                  disabled={busy}
+              disabled={busy}
               value={roomCode}
               onChange={(event) => setRoomCode(event.target.value)}
               required
@@ -112,12 +157,14 @@ export default function JoinRoomPage({ onBack, onPreview }) {  const [name, setN
           <label className="join-field">
             목표 시간
             <select
-                  disabled={busy}
+              disabled={busy}
               value={goalMinutes}
               onChange={(event) => setGoalMinutes(event.target.value)}
               required
             >
-              <option value="" disabled>시간 선택</option>
+              <option value="" disabled>
+                시간 선택
+              </option>
               <option value="60">1시간</option>
               <option value="120">2시간</option>
               <option value="180">3시간</option>
@@ -128,7 +175,14 @@ export default function JoinRoomPage({ onBack, onPreview }) {  const [name, setN
           </label>
         </div>
 
-        <p className="join-message" role="status">{message}</p>
+        <p className="join-message" role="status">
+          {message}
+          {duplicate && (
+            <button type="button" onClick={onLogin}>
+              기존 고양이로 로그인
+            </button>
+          )}
+        </p>
 
         <button className="join-submit" type="submit" disabled={busy}>
           입장

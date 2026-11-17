@@ -1,7 +1,8 @@
-import { getSession, errorMessage } from './api/client';
+import { getSession, saveSession, clearSession, request, errorMessage } from './api/client';
 import { getMe, getMyRoom, getDevice } from './api/rooms';
 import { roomView } from './api/viewModels';
 import { useCallback, useEffect, useState } from "react";
+import CatLogin from "./components/CatLogin";
 import HomePage from "./pages/HomePage";
 import JoinRoomPage from "./pages/JoinRoomPage";
 import CreateRoomPage from "./pages/CreateRoomPage";
@@ -12,6 +13,7 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [roomPreview, setRoomPreview] = useState(null);
 
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(!!getSession()?.accessToken);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -19,7 +21,12 @@ export default function App() {
     if (!getSession()?.accessToken) { setLoading(false); return; }
     setLoading(true); setError('');
     try {
-      await getMe(signal); const current = await getMyRoom(signal);
+      const me = await getMe(signal);
+      if (signal?.aborted) return;
+      setProfile(me);
+      if (getSession()?.nickname !== me.nickname) saveSession({...getSession(), nickname:me.nickname});
+      if (!me.passwordSet) { setPage('setup'); return; }
+      const current = await getMyRoom(signal);
       const device = current ? await getDevice(current.roomId, signal) : null;
       if (!signal?.aborted) { setRoomPreview(current ? roomView(current, device?.deviceCode) : null); setPage(current ? 'room' : 'home'); }
     } catch (e) { if (!signal?.aborted) setError(errorMessage(e)); }
@@ -28,10 +35,21 @@ export default function App() {
   useEffect(() => {
     const controller = new AbortController();
     const timer = setTimeout(() => restore(controller.signal), 0);
-    const expired = () => { setRoomPreview(null); setPage('home'); setError('세션이 만료됐어요. 다시 시작해 주세요.'); };
+    const expired = () => { setProfile(null); setRoomPreview(null); setPage('home'); setError('세션이 만료됐어요. 다시 시작해 주세요.'); };
     window.addEventListener('nyangttang:session-expired', expired);
-    return () => { clearTimeout(timer); controller.abort(); window.removeEventListener('nyangttang:session-expired', expired); };
+    const syncAccount = e => {
+      if (e.key === null || e.key?.startsWith('nyangttang.session:')) window.location.reload();
+    };
+    window.addEventListener('storage', syncAccount);
+    return () => { window.removeEventListener('storage', syncAccount); clearTimeout(timer); controller.abort(); window.removeEventListener('nyangttang:session-expired', expired); };
   }, [restore]);
+
+  async function logout() {
+    try {
+      await request('/api/v1/auth/logout', {method:'POST'});
+      clearSession(); setRoomPreview(null); setProfile(null); setError(''); setPage('home');
+    } catch (e) { setError(errorMessage(e)); }
+  }
 
   function openRoomPreview(data, message = '') {
     setNotice(message);
@@ -42,12 +60,17 @@ export default function App() {
   if (loading) return <main className="home-page"><p role="status">참여 중인 방을 불러오고 있어요.</p></main>;
   if (error && getSession()?.accessToken) return <main className="home-page"><p role="alert">{error}</p><button onClick={() => restore()}>다시 연결</button></main>;
 
+  if (page === 'setup' || page === 'login') return <CatLogin
+    previousName={page === 'setup' ? profile?.nickname : null}
+    onBack={page === 'login' ? () => setPage('home') : null} onDone={() => restore()} />;
+
   if (page === "room" && roomPreview) {
     return (
       <RoomPage
         room={roomPreview}
         notice={notice}
         onUnavailable={restore}
+        onRefresh={() => restore()}
         onBack={() => setPage("home")}
       />
     );
@@ -58,6 +81,8 @@ export default function App() {
       <JoinRoomPage
         onBack={() => setPage("home")}
         onPreview={openRoomPreview}
+        preferredColor={profile?.preferredColor}
+        onLogin={() => setPage("login")}
       />
     );
   }
@@ -67,6 +92,8 @@ export default function App() {
       <CreateRoomPage
         onBack={() => setPage("home")}
         onPreview={openRoomPreview}
+        preferredColor={profile?.preferredColor}
+        onLogin={() => setPage("login")}
       />
     );
   }
@@ -76,7 +103,7 @@ export default function App() {
   }
 
   return (
-    <HomePage
+    <HomePage onLogout={logout} loggedIn={!!getSession()?.accessToken} onLogin={() => setPage("login")}
       onJoin={() => setPage(roomPreview ? "room" : "join")}
       onCreate={() => setPage(roomPreview ? "room" : "create")}
     />

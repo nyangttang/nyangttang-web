@@ -2,7 +2,7 @@ import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { request, saveSession, getSession, API_BASE_URL } from '../src/api/client.js';
 import { connectRoom } from '../src/api/roomSocket.js';
-import { createRoom, registerDevice } from '../src/api/rooms.js';
+import { createRoom, registerDevice, ensureUser, login } from '../src/api/rooms.js';
 import { mapView, roomRequest } from '../src/api/viewModels.js';
 import { enterRoom } from '../src/api/enterRoom.js';
 
@@ -13,20 +13,18 @@ beforeEach(() => {
   globalThis.window = new EventTarget();
   calls = [];
   globalThis.fetch = async (url, options) => { calls.push({url, options}); return new Response(JSON.stringify({data:null}), {status:200}); };
-  saveSession({ accessToken:'test-session-only' });
+  saveSession({ accessToken:'test-session-only', nickname:'냥' });
 });
 test('base URL does not double the API prefix and nullable data is unwrapped', async () => {
   assert.equal(await request('/api/v1/users/me/room'), null);
   assert.equal(calls[0].url, `${API_BASE_URL}/api/v1/users/me/room`);
   assert.equal(calls[0].options.headers.Authorization, 'Bearer test-session-only');
 });
-test('device auth failures preserve user session and include per-request device header', async () => {
-  globalThis.fetch = async (url, options) => { calls.push({url,options}); return new Response(JSON.stringify({error:{code:'DEVICE_AUTH_FAILED',message:'Invalid device key'}}), {status:401}); };
-  await assert.rejects(registerDevice('9','NYANG-0001','test-key'), {code:'DEVICE_AUTH_FAILED'});
-  assert.equal(getSession().accessToken, 'test-session-only');
-  assert.equal(calls[0].options.headers['X-Device-Key'],'test-key');
-  assert.equal(calls[0].url,`${API_BASE_URL}/api/v1/dev/rooms/9/physical-device`);
-  assert.equal(JSON.stringify(getSession()).includes('test-key'),false);
+test('pairing sends the label and expected old device with the user session', async () => {
+  await registerDevice('9','ABCD-EFGH-JKLM','NYANG-0001');
+  assert.equal(calls[0].options.headers['X-Device-Key'],undefined);
+  assert.equal(calls[0].url,`${API_BASE_URL}/api/v1/rooms/9/device/pair`);
+  assert.deepEqual(JSON.parse(calls[0].options.body),{pairingCode:'ABCD-EFGH-JKLM',expectedDeviceCode:'NYANG-0001'});
 });
 test('expired user token clears session and notifies the app', async () => {
   let expired = false; window.addEventListener('nyangttang:session-expired', () => expired = true);
@@ -70,14 +68,14 @@ test('existing five colors and minute inputs preserve the API contract', () => {
   const map = mapView({width:10,owners:[9,null],members:[{memberId:9,catName:'냥',catColor:'WHITE',x:0,y:0,state:'STUDYING'}]});
   assert.equal(map.users['9'].color, '#E5F1F8'); assert.equal(map.owners[0],'9'); assert.equal(map.cats[0].status,'studying');
 });
-test('a device authentication failure preserves the created room and user session', async () => {
+test('a invalid label preserves the created room and user session', async () => {
   globalThis.fetch = async (url, options) => {
     calls.push({url,options});
     if (url.endsWith('/users/me/room')) return Response.json({data:null});
-    if (url.endsWith('/physical-device')) return Response.json({error:{code:'DEVICE_AUTH_FAILED',message:'키 확인'}},{status:401});
+    if (url.endsWith('/device/pair')) return Response.json({error:{code:'BAD_REQUEST',message:'등록 코드 확인'}},{status:400});
     return Response.json({data:{roomId:7,name:'방',catName:'냥',catColor:'WHITE',dailyGoalSeconds:3600,inviteCode:'ABC123',capacity:2}});
   };
-  const result=await enterRoom('create',{roomName:'방',name:'냥',color:'#ffffff',goalMinutes:60,capacity:2,deviceCode:'NYANG-TEST'},'test-key');
+  const result=await enterRoom('create',{roomName:'방',name:'냥',color:'#ffffff',goalMinutes:60,capacity:2,deviceCode:'ABCD-EFGH-JKLM'});
   assert.equal(result.room.roomId,7); assert.equal(result.room.capacity,2); assert.match(result.notice,/기기를 연결하지 못/);
   assert.equal(getSession().accessToken,'test-session-only'); assert.equal(JSON.stringify(result).includes('test-key'),false);
   assert.equal(JSON.parse(calls.find(c=>c.url.endsWith('/rooms')).options.body).capacity,2);
@@ -85,5 +83,20 @@ test('a device authentication failure preserves the created room and user sessio
 test('retrying room creation after response loss restores membership instead of duplicating rooms', async () => {
   globalThis.fetch=async(url,options)=>{calls.push({url,options});return Response.json({data:{roomId:7,name:'방',catName:'냥',catColor:'WHITE',dailyGoalSeconds:3600,inviteCode:'ABC123',capacity:2}});};
   const result=await enterRoom('create',{name:'냥',color:'#ffffff',goalMinutes:60,capacity:2,deviceCode:''},'');
-  assert.equal(result.room.roomId,7);assert.equal(calls.length,1);assert.equal(calls[0].options.method,'GET');
+  assert.equal(result.room.roomId,7);assert.equal(calls.length,2);assert.equal(calls[0].options.method,'GET');
+});
+
+test('new signup saves only the session response and duplicate signup preserves the login choice', async () => {
+  localStorage.removeItem(`nyangttang.session:${API_BASE_URL}`);
+  globalThis.fetch = async () => Response.json({error:{code:'NICKNAME_TAKEN',message:'중복'}},{status:409});
+  await assert.rejects(ensureUser('냥','test-only-pass'), {code:'NICKNAME_TAKEN'});
+  assert.equal(getSession(),null);
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url,`${API_BASE_URL}/api/v1/users/login`);
+    assert.equal(options.headers.Authorization,undefined);
+    return Response.json({data:{id:7,nickname:'냥',accessToken:'new-session'}});
+  };
+  await login('냥','test-only-pass');
+  assert.equal(getSession().id,7);
+  assert.equal(JSON.stringify(getSession()).includes('test-only-pass'),false);
 });

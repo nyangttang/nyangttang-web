@@ -1,8 +1,8 @@
 import { useRoomSnapshot } from '../hooks/useRoomSnapshot';
-import { getDevice, getRanking, getTodayStudy, registerDevice } from '../api/rooms';
+import { getDevice, getRanking, getTodayStudy, registerDevice, unlinkDevice, updateColor, leaveRoom } from '../api/rooms';
 import { formColor, stateText, studyTime, sensorText } from '../api/viewModels';
 import { errorMessage } from '../api/client';
-import DeviceKeyDialog from '../components/DeviceKeyDialog';
+import DeviceLabelDialog from '../components/DeviceLabelDialog';
 import { useEffect, useState } from "react";
 import MapGrid from "./MapGrid";
 import "./RoomPage.css";
@@ -30,7 +30,7 @@ const MENUS = [
   { id: "device", label: "기기" },
 ];
 
-export default function RoomPage({ room, onBack, onUnavailable, notice }) {
+export default function RoomPage({ room, onBack, onUnavailable, onRefresh, notice }) {
   const [tab, setTab] = useState("walk");
   const [copyMessage, setCopyMessage] = useState("");
   const { snapshot, error, reconnect } = useRoomSnapshot(room.roomId, onUnavailable);
@@ -40,7 +40,7 @@ export default function RoomPage({ room, onBack, onUnavailable, notice }) {
   const [ranking, setRanking] = useState(null);
   const [daily, setDaily] = useState(null);
   const [queryError, setQueryError] = useState('');
-  const [askKey, setAskKey] = useState(false);
+  const [showLabel, setShowLabel] = useState(false);
   const [deviceBusy, setDeviceBusy] = useState(false);
   useEffect(() => {
     const controller = new AbortController(); let busy = false;
@@ -60,13 +60,19 @@ export default function RoomPage({ room, onBack, onUnavailable, notice }) {
     load(); const timer = setInterval(load, 5000);
     return () => { controller.abort(); clearInterval(timer); };
   }, [room.roomId, tab, snapshot?.studyDate]);
-  async function connectDevice({code, key}) {
-    setAskKey(false); setDeviceBusy(true);
-    try { await registerDevice(room.roomId, code, key); setDevice(await getDevice(room.roomId)); setQueryError(''); }
-    catch (e) { setQueryError(errorMessage(e)); }
+  const [settingsError, setSettingsError] = useState('');
+  async function connectDevice(code) {
+    await registerDevice(room.roomId, code, device?.deviceCode);
+    setDevice(await getDevice(room.roomId));
+    setSettingsError('');
+  }
+  async function change(action) {
+    setDeviceBusy(true); setSettingsError('');
+    try { await action(); await onRefresh(); }
+    catch (e) { setSettingsError(errorMessage(e)); }
     finally { setDeviceBusy(false); }
   }
-  const catImage = CAT_IMAGES[room.color] || whiteCat;
+  const catImage = CAT_IMAGES[me ? formColor(me.catColor) : room.color] || whiteCat;
   
   const today = new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
@@ -96,7 +102,7 @@ export default function RoomPage({ room, onBack, onUnavailable, notice }) {
 
   return (
     <main className="room-page">
-      {askKey && <DeviceKeyDialog deviceCode={room.deviceCode} onConfirm={connectDevice} onCancel={() => setAskKey(false)} />}
+      {showLabel && <DeviceLabelDialog previous={device?.deviceCode} onConfirm={connectDevice} onCancel={() => setShowLabel(false)} />}
       <div className="room-topbar">
         <button type="button" onClick={onBack}>
           ← 처음으로
@@ -104,7 +110,7 @@ export default function RoomPage({ room, onBack, onUnavailable, notice }) {
       </div>
 
       <div className="room-content">
-        {(error || queryError || (!device && notice)) && <p className="room-help" role="alert">{error || queryError || (!device && notice)}{error && <button onClick={reconnect}>다시 연결</button>}</p>}
+        {(error || queryError || notice) && <p className="room-help" role="alert">{error || queryError || notice}{error && <button onClick={reconnect}>다시 연결</button>}</p>}
         {/* 1. 산책 탭 상단 영역 */}
         {tab === "walk" && (
           <>
@@ -214,7 +220,7 @@ export default function RoomPage({ room, onBack, onUnavailable, notice }) {
 
               <dl className="room-record-values">
                 <div>
-                  <dt>입력한 기기 코드</dt>
+                  <dt>연결된 기기 번호</dt>
                   <dd>{device?.deviceCode || "미등록"}</dd>
                 </div>
                 <div>
@@ -229,8 +235,22 @@ export default function RoomPage({ room, onBack, onUnavailable, notice }) {
 
               <p className="room-help">
                 {device?.connected ? "식빵냥에서 받은 센서 상태예요." : "기기를 연결하고 식빵냥을 켜 주세요."}
-                {deviceLoaded && !device && <button type="button" disabled={deviceBusy} onClick={() => setAskKey(true)}>기기 연결</button>}
+                {deviceLoaded && <button type="button" disabled={deviceBusy} onClick={() => setShowLabel(true)}>{device ? '기기 교체' : '기기 연결'}</button>}
               </p>
+              {device && <button type="button" disabled={deviceBusy} onClick={() => {
+                if (window.confirm('이 식빵냥의 연결을 해제할까요?')) change(() => unlinkDevice(room.roomId, device.deviceCode));
+              }}>기기 해제</button>}
+              <label> 고양이 색상 <select disabled={deviceBusy || !me} value={me?.catColor || ''} onChange={e => {
+                const selected = e.target.value;
+                change(() => updateColor(room.roomId, selected));
+              }}>
+                {Object.entries({WHITE:'흰냥',GRAY:'회색냥',CHEESE:'치즈냥',TRICOLOR:'삼색냥',BLACK:'검정냥'}).map(([value, name]) =>
+                  <option key={value} value={value}>{name}</option>)}
+              </select></label>
+              <button type="button" disabled={deviceBusy} onClick={() => {
+                if (window.confirm('방을 나가면 기기 연결도 해제돼요. 나갈까요?')) change(() => leaveRoom(room.roomId, room.memberId));
+              }}>방 나가기</button>
+              {settingsError && <p className="room-help" role="alert">{settingsError}</p>}
             </section>
           </>
         )}
