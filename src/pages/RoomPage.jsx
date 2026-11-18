@@ -1,8 +1,9 @@
 import { useRoomSnapshot } from '../hooks/useRoomSnapshot';
-import { getDevice, getRanking, getTodayStudy, registerDevice, unlinkDevice, updateColor, leaveRoom } from '../api/rooms';
+import { getDevice, getRanking, getTodayStudy, getStudySessions, registerDevice, unlinkDevice, updateColor, leaveRoom } from '../api/rooms';
 import { formColor, stateText, studyTime, sensorText } from '../api/viewModels';
 import { errorMessage } from '../api/client';
 import DeviceLabelDialog from '../components/DeviceLabelDialog';
+import TimelapsePlayer from '../components/TimelapsePlayer';
 import { useEffect, useState } from "react";
 import MapGrid from "./MapGrid";
 import "./RoomPage.css";
@@ -33,33 +34,78 @@ const MENUS = [
 export default function RoomPage({ room, onBack, onUnavailable, onRefresh, notice }) {
   const [tab, setTab] = useState("walk");
   const [copyMessage, setCopyMessage] = useState("");
-  const { snapshot, error, reconnect } = useRoomSnapshot(room.roomId, onUnavailable);
-  const me = snapshot?.members.find(member => String(member.memberId) === String(snapshot.myMemberId));
+  const { snapshot, error, reconnect } = useRoomSnapshot(
+    room.roomId,
+    onUnavailable,
+  );
+  const me = snapshot?.members.find(
+    (member) => String(member.memberId) === String(snapshot.myMemberId),
+  );
   const [device, setDevice] = useState(null);
   const [deviceLoaded, setDeviceLoaded] = useState(false);
   const [ranking, setRanking] = useState(null);
   const [daily, setDaily] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [queryError, setQueryError] = useState('');
   const [showLabel, setShowLabel] = useState(false);
   const [deviceBusy, setDeviceBusy] = useState(false);
   useEffect(() => {
-    const controller = new AbortController(); let busy = false;
+    const controller = new AbortController();
+    let busy = false;
     async function load() {
-      if (busy) return; busy = true;
+      if (busy) return;
+      busy = true;
       try {
         const result = await getDevice(room.roomId, controller.signal);
-        if (!controller.signal.aborted) { setDevice(result); setDeviceLoaded(true); }
-        if (tab === 'records' && snapshot?.studyDate) {
-          const [rank, study] = await Promise.all([getRanking(room.roomId, controller.signal), getTodayStudy(snapshot.studyDate, controller.signal)]);
-          if (!controller.signal.aborted) { setRanking(rank); setDaily(study); }
+        if (!controller.signal.aborted) {
+          setDevice(result);
+          setDeviceLoaded(true);
         }
-        if (!controller.signal.aborted) setQueryError('');
-      } catch (e) { if (!controller.signal.aborted) setQueryError(errorMessage(e)); }
-      finally { busy = false; }
+        if (tab === "records" && snapshot?.studyDate) {
+          const [rank, study] = await Promise.all([
+            getRanking(room.roomId, controller.signal),
+            getTodayStudy(snapshot.studyDate, controller.signal),
+          ]);
+          if (!controller.signal.aborted) {
+            setRanking(rank);
+            setDaily(study);
+          }
+        }
+        if (!controller.signal.aborted) setQueryError("");
+      } catch (e) {
+        if (!controller.signal.aborted) setQueryError(errorMessage(e));
+      } finally {
+        busy = false;
+      }
     }
-    load(); const timer = setInterval(load, 5000);
-    return () => { controller.abort(); clearInterval(timer); };
+    load();
+    const timer = setInterval(load, 5000);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+    };
   }, [room.roomId, tab, snapshot?.studyDate]);
+
+  useEffect(() => {
+    if (tab !== "records" || !snapshot?.studyDate) return;
+    const controller = new AbortController();
+    getStudySessions(snapshot.studyDate, controller.signal)
+      .then((result) => {
+        if (controller.signal.aborted) return;
+        setSessions(
+          result.items.filter(
+            (item) =>
+              String(item.roomId) === String(room.roomId) && item.replayReady,
+          ),
+        );
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted) setQueryError(errorMessage(e));
+      });
+    return () => controller.abort();
+  }, [tab, snapshot?.studyDate, room.roomId]);
+
   const [settingsError, setSettingsError] = useState('');
   async function connectDevice(code) {
     await registerDevice(room.roomId, code, device?.deviceCode);
@@ -80,8 +126,11 @@ export default function RoomPage({ room, onBack, onUnavailable, onRefresh, notic
     day: "numeric",
   }).format(new Date());
 
-  const goalHours = Math.floor((me?.dailyGoalSeconds ?? room.goalMinutes * 60) / 3600);
-  const goalRemainder = ((me?.dailyGoalSeconds ?? room.goalMinutes * 60) / 60) % 60;
+  const goalHours = Math.floor(
+    (me?.dailyGoalSeconds ?? room.goalMinutes * 60) / 3600,
+  );
+  const goalRemainder =
+    ((me?.dailyGoalSeconds ?? room.goalMinutes * 60) / 60) % 60;
   const goalText = [
     goalHours > 0 ? `${goalHours}시간` : "",
     goalRemainder > 0 ? `${goalRemainder}분` : "",
@@ -116,7 +165,9 @@ export default function RoomPage({ room, onBack, onUnavailable, onRefresh, notic
           <>
             <header className="room-heading">
               <h1>{snapshot?.name || room.roomName}</h1>
-              <p>{today} · {me ? stateText(me.state) : "확인 중"}</p>
+              <p>
+                {today} · {me ? stateText(me.state) : "확인 중"}
+              </p>
             </header>
 
             <section className="room-my-cat" aria-label="내 고양이">
@@ -132,41 +183,53 @@ export default function RoomPage({ room, onBack, onUnavailable, onRefresh, notic
 
                 <div className="room-goal-track" aria-hidden="true" />
 
-                <p>오늘 {me ? studyTime(me.todayStudySeconds) : "확인 중"} · 목표 {goalText}</p>
+                <p>
+                  오늘 {me ? studyTime(me.todayStudySeconds) : "확인 중"} · 목표{" "}
+                  {goalText}
+                </p>
               </div>
             </section>
           </>
         )}
 
-        {/* 2. 친구 탭 영역 */}
         {tab === "friends" && (
           <>
             <header className="room-heading">
               <h1>우리 방 친구들</h1>
-              <p>{snapshot ? `${snapshot.members.length}명이 함께해요` : "참여자를 확인하고 있어요"}</p>
+              <p>
+                {snapshot
+                  ? `${snapshot.members.length}명이 함께해요`
+                  : "참여자를 확인하고 있어요"}
+              </p>
             </header>
 
             <section className="room-friend-list" aria-label="참여자">
-              {(snapshot?.members || []).map(member => (
-              <article className="room-friend" key={member.memberId}>
-                <div className="room-avatar">
-                  <img src={CAT_IMAGES[formColor(member.catColor)] || whiteCat} alt="" />
-                </div>
-
-                <div className="room-friend-info">
-                  <div className="room-friend-name">
-                    <strong>{member.catName}</strong>
-                    <span className="room-status">{stateText(member.state)}</span>
+              {(snapshot?.members || []).map((member) => (
+                <article className="room-friend" key={member.memberId}>
+                  <div className="room-avatar">
+                    <img
+                      src={CAT_IMAGES[formColor(member.catColor)] || whiteCat}
+                      alt=""
+                    />
                   </div>
-                  <p>오늘 {studyTime(member.todayStudySeconds)} · 땅 {member.ownedCellCount}%</p>
-                </div>
-              </article>
+
+                  <div className="room-friend-info">
+                    <div className="room-friend-name">
+                      <strong>{member.catName}</strong>
+                      <span className="room-status">
+                        {stateText(member.state)}
+                      </span>
+                    </div>
+                    <p>
+                      오늘 {studyTime(member.todayStudySeconds)} · 땅{" "}
+                      {member.ownedCellCount}%
+                    </p>
+                  </div>
+                </article>
               ))}
             </section>
 
-            <p className="room-help">
-              친구들의 공부 상태와 산책 현황이에요.
-            </p>
+            <p className="room-help">친구들의 공부 상태와 산책 현황이에요.</p>
 
             <section className="room-invite" aria-label="방 코드">
               <div>
@@ -192,17 +255,43 @@ export default function RoomPage({ room, onBack, onUnavailable, onRefresh, notic
           </>
         )}
 
-        {/* 3. 기록 탭 상단 영역 */}
         {tab === "records" && (
           <>
             <header className="room-heading">
               <h1>오늘의 산책 지도</h1>
-              <p>{today} · {daily ? `오늘 공부 ${studyTime(daily.totalStudyMs / 1000)}` : "기록 확인 중"}</p>
+              <p>
+                {today} ·{" "}
+                {daily
+                  ? `오늘 공부 ${studyTime(daily.totalStudyMs / 1000)}`
+                  : "기록 확인 중"}
+              </p>
             </header>
+
+            <section aria-label="타임랩스">
+              {sessions.length === 0 ? (
+                <p className="room-help">
+                  재생할 수 있는 끝난 공부 기록이 아직 없어요.
+                </p>
+              ) : (
+                sessions.map((s) => (
+                  <button
+                    key={s.sessionId}
+                    type="button"
+                    onClick={() => setSelectedSessionId(s.sessionId)}
+                  >
+                    {new Date(s.startedAt).toLocaleTimeString("ko-KR", {
+                      timeZone: "Asia/Seoul",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
+                    세션 · {Math.round(s.creditedMs / 60000)}분 타임랩스
+                  </button>
+                ))
+              )}
+            </section>
           </>
         )}
 
-        {/* 4. 기기 탭 영역 */}
         {tab === "device" && (
           <>
             <header className="room-heading">
@@ -216,7 +305,15 @@ export default function RoomPage({ room, onBack, onUnavailable, onRefresh, notic
               </div>
 
               <h2>{room.name}의 식빵냥</h2>
-              <span className="room-status">{!deviceLoaded ? "확인 중" : !device ? "미등록" : device.connected ? "연결됨" : "연결 대기"}</span>
+              <span className="room-status">
+                {!deviceLoaded
+                  ? "확인 중"
+                  : !device
+                    ? "미등록"
+                    : device.connected
+                      ? "연결됨"
+                      : "연결 대기"}
+              </span>
 
               <dl className="room-record-values">
                 <div>
@@ -255,30 +352,40 @@ export default function RoomPage({ room, onBack, onUnavailable, onRefresh, notic
           </>
         )}
 
-        {/* 💡 산책 탭과 기록 탭에서만 공통으로 지도를 노출 */}
         {(tab === "walk" || tab === "records") && (
           <section className="room-map-section" aria-label="지도 영역">
             <div>
-              {/* 🌟 아래와 같이 currentTab={tab} 을 전달해줍니다 */}
-              <MapGrid snapshot={snapshot} showMarkers={tab === "walk"} currentTab={tab} ranking={ranking} />
+              {tab === "records" && selectedSessionId ? (
+                <TimelapsePlayer
+                  key={selectedSessionId}
+                  sessionId={selectedSessionId}
+                  onClose={() => setSelectedSessionId(null)}
+                />
+              ) : (
+                <MapGrid
+                  snapshot={snapshot}
+                  showMarkers={tab === "walk"}
+                  currentTab={tab}
+                  ranking={ranking}
+                />
+              )}
             </div>
           </section>
         )}
       </div>
 
       <nav className="room-bottom-nav" aria-label="주 메뉴">
-        <img
-          className="room-nav-grass"
-          src={grassNav}
-          alt=""
-        />
+        <img className="room-nav-grass" src={grassNav} alt="" />
 
         {MENUS.map((menu) => (
           <button
             key={menu.id}
             type="button"
             aria-current={tab === menu.id ? "page" : undefined}
-            onClick={() => setTab(menu.id)}
+            onClick={() => {
+              setTab(menu.id);
+              setSelectedSessionId(null);
+            }}
           >
             {menu.label}
           </button>

@@ -1,0 +1,23 @@
+.tl-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tl-slider {
+  width: 100%;
+}
+.tl-time,
+.tl-summary {
+  text-align: center;
+  font-size: 14px;
+  margin: 0;
+}
+.tl-controls {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.tl-controls button.on {
+  font-weight: 700;
+}

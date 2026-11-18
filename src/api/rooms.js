@@ -29,3 +29,4 @@ export const joinRoom = body => request('/api/v1/rooms/join', {method:'POST',bod
 export const registerDevice = (id, pairingCode, expectedDeviceCode) => request(`/api/v1/rooms/${id}/device/pair`, {
   method:'POST',body:{pairingCode,expectedDeviceCode},
 });
+export const getStudySessions = (date, signal) => request(`/api/v1/users/me/study/sessions?date=${encodeURIComponent(date)}`, {signal});
