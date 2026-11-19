@@ -1,5 +1,13 @@
 import "./MapGrid.css";
 import { mapView } from '../api/viewModels';
+import whiteCat from '../assets/white-cat.png';
+import grayCat from '../assets/gray-cat.png';
+import cheeseCat from '../assets/cheese-cat.png';
+import threeCat from '../assets/three-cat.png';
+import blackCat from '../assets/black-cat.png';
+
+const CAT_IMAGES = { WHITE: whiteCat, GRAY: grayCat, CHEESE: cheeseCat, TRICOLOR: threeCat, BLACK: blackCat };
+const MAP_TEXT_COLORS = { '#E5F1F8': '#38b6ff', '#E0DBD8': '#4b4947', '#FDDCAC': '#ce8000', '#4D3516': '#e4c99f' };
 
 export default function MapGrid({ snapshot, showMarkers = true, currentTab = "walk", ranking }) {
   const gridCells = Array.from({ length: 100 }, (_, index) => index);
@@ -48,7 +56,7 @@ export default function MapGrid({ snapshot, showMarkers = true, currentTab = "wa
     if (owner && users[owner]) {
       return users[owner].color;
     }
-    return "#f1f2f6";
+    return "#fff3df";
   };
 
   // 점수(땅 차지 비율) 기준 내림차순 정렬된 유저 배열 생성
@@ -66,6 +74,7 @@ export default function MapGrid({ snapshot, showMarkers = true, currentTab = "wa
         <div className="grid-board">
           {gridCells.map((cellId) => {
             const currentCat = cats.find((cat) => cat.pos === cellId);
+            const member = snapshot?.members?.find((item) => String(item.memberId) === currentCat?.id);
 
             return (
               <div
@@ -76,28 +85,13 @@ export default function MapGrid({ snapshot, showMarkers = true, currentTab = "wa
                 }}
               >
                 {showMarkers && currentCat ? (
-                  <div
-                    className="cat-marker"
-                    style={{
-                      borderColor: currentCat.color,
-                    }}
-                  >
-                    <span>
-                      {currentCat.status === "studying" ? "🐱" : "💤"}
-                    </span>
-
-                    <span
-                      className="cat-tag"
-                      style={{
-                        backgroundColor: currentCat.color,
-                      }}
-                    >
-                      {currentCat.name}{" "}
-                      {currentCat.waitCount > 0
-                        ? `(대기중 ${currentCat.waitCount})`
-                        : ""}
-                    </span>
-                  </div>
+                  <img
+                    className="map-cat-image"
+                    src={CAT_IMAGES[member?.catColor] || whiteCat}
+                    alt={`${currentCat.name} 고양이`}
+                    title={`${currentCat.name} · ${currentCat.status === "studying" ? "공부 중" : "휴식·대기 중"}`}
+                    draggable={false}
+                  />
                 ) : null}
               </div>
             );
@@ -109,7 +103,7 @@ export default function MapGrid({ snapshot, showMarkers = true, currentTab = "wa
       {currentTab === "walk" && (
         <div className="stats-container">
           {Object.entries(users).map(([userId, userInfo]) => {
-            const dynamicTextColor = getTextColor(userInfo.color);
+            const dynamicTextColor = MAP_TEXT_COLORS[userInfo.color] || getTextColor(userInfo.color);
 
             return (
               <div
